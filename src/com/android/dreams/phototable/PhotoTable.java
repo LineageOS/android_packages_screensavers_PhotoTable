@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -33,6 +34,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.FrameLayout;
@@ -83,13 +85,18 @@ public class PhotoTable extends Dream {
         private static Random sRNG = new Random();
 
         private final Launcher mLauncher;
+        private final LinkedList<View> mOnTable;
+        private final Dream mDream;
+        private final int mDropPeriod;
+        private final float mImageRatio;
+        private final int mTableCapacity;
+        private final int mInset;
+        private final LocalSource mLocalSource;
+        private final Resources mResources;
+        private final int mTouchSlop;
+        private final int mTapTimeout;
         private boolean mStarted;
-        private LinkedList<View> mOnTable;
-        private Dream mDream;
-        private int mDropPeriod;
-        private float mImageRatio;
-        private int mTableCapacity;
-        private int mInset;
+        private boolean mIsLandscape;
         private BitmapFactory.Options mOptions;
         private int mLongSide;
         private int mShortSide;
@@ -97,9 +104,6 @@ public class PhotoTable extends Dream {
         private int mHeight;
         private View mSelected;
         private long mSelectedTime;
-        private LocalSource mLocalSource;
-        private Resources mResources;
-        private PointF[] mDropZone;
 
         public Table(Dream dream, AttributeSet as) {
             super(dream, as);
@@ -116,6 +120,9 @@ public class PhotoTable extends Dream {
             mLocalSource = new LocalSource(getContext());
             mLauncher = new Launcher(this);
             mStarted = false;
+            final ViewConfiguration configuration = ViewConfiguration.get(getContext());
+            mTouchSlop = configuration.getScaledTouchSlop();
+            mTapTimeout = configuration.getTapTimeout();
         }
 
         public boolean hasSelection() {
@@ -132,8 +139,13 @@ public class PhotoTable extends Dream {
 
         public void setSelection(View selected) {
             assert(selected != null);
+            if (mSelected != null) {
+                dropOnTable(mSelected);
+            }
             mSelected = selected;
             mSelectedTime = System.currentTimeMillis();
+            bringChildToFront(selected);
+            pickUp(selected);
         }
 
         static float lerp(float a, float b, float f) {
@@ -189,25 +201,20 @@ public class PhotoTable extends Dream {
             mHeight = bottom - top;
             mWidth = right - left;
 
-            if (mDropZone == null) {
-                mDropZone = new PointF[4];
-                mDropZone[0] = new PointF();
-                mDropZone[1] = new PointF();
-                mDropZone[2] = new PointF();
-                mDropZone[3] = new PointF();
+            mLongSide = (int) (mImageRatio * Math.max(mWidth, mHeight));
+            mShortSide = (int) (mImageRatio * Math.min(mWidth, mHeight));
+
+            boolean isLandscape = mWidth > mHeight;
+            if (mIsLandscape != isLandscape) {
+                for (View photo: mOnTable) {
+                    if (photo == getSelected()) {
+                        pickUp(photo);
+                    } else {
+                        dropOnTable(photo);
+                    }
+                }
+                mIsLandscape = isLandscape;
             }
-            mDropZone[0].x = 0f;
-            mDropZone[0].y = 0.75f * mHeight;
-            mDropZone[1].x = 0f;
-            mDropZone[1].y = 0f;
-            mDropZone[2].x = 0f;
-            mDropZone[2].y = 0f;
-            mDropZone[3].x = 0.75f * mWidth;
-            mDropZone[3].y = 0f;
-
-            mLongSide = Math.max(mWidth, mHeight);
-            mShortSide = Math.min(mWidth, mHeight);
-
             start();
         }
 
@@ -331,6 +338,14 @@ public class PhotoTable extends Dream {
                         });
         }
 
+        private void moveToBackOfQueue(View photo) {
+            // make this photo the last to be removed.
+            bringChildToFront(photo);
+            invalidate();
+            mOnTable.remove(photo);
+            mOnTable.offer(photo);
+        }
+
         private void throwOnTable(final View photo) {
             mOnTable.offer(photo);
             log("start offscreen");
@@ -371,11 +386,11 @@ public class PhotoTable extends Dream {
             // toss onto table
             photo.animate()
                     .withLayer()
-                    .scaleX(0.5f)
-                    .scaleY(0.5f)
+                    .scaleX(0.5f / mImageRatio)
+                    .scaleY(0.5f / mImageRatio)
                     .rotation(angle)
                     .x(x)
-                    .y(y)
+                   .y(y)
                     .setDuration(duration)
                     .withEndAction(new Runnable() {
                             @Override
@@ -385,20 +400,150 @@ public class PhotoTable extends Dream {
                                 }
                             }
                         });
-            
-            photo.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View target) {
-                    if (hasSelection()) {
-                        dropOnTable(getSelected());
-                        clearSelection();
+
+            photo.setOnTouchListener(new OnTouchListener() {
+                private static final int INVALID_POINTER = -1;
+                private static final int MAX_POINTER_COUNT = 10;
+                private float mInitialTouchX;
+                private float mInitialTouchY;
+                private float mInitialTouchA;
+                private long mInitialTouchTime;
+                private float mInitialTargetX;
+                private float mInitialTargetY;
+                private float mInitialTargetA;
+                private int mA = INVALID_POINTER;
+                private int mB = INVALID_POINTER;
+                private float[] pts = new float[MAX_POINTER_COUNT];
+
+                /** Get angle defined by first two touches, in degrees */
+                private float getAngle(View target, MotionEvent ev) {
+                    float alpha = 0f;
+                    int a = ev.findPointerIndex(mA);
+                    int b = ev.findPointerIndex(mB);
+                    if (a >=0 && b >=0) {
+                        alpha = (float) (Math.atan2(pts[2*a + 1] - pts[2*b + 1],
+                                                    pts[2*a] - pts[2*b]) *
+                                         180f / Math.PI);
                     }
-                    target.animate().cancel();
-                    bringChildToFront(target);
-                    setSelection(target);
-                    pickUp(getSelected());
+                    return alpha;
+                }
+
+                private void resetTouch(View target) {
+                    mInitialTouchX = -1;
+                    mInitialTouchY = -1;
+                    mInitialTouchA = 0f;
+                    mInitialTargetX = (float) target.getX();
+                    mInitialTargetY = (float) target.getY();
+                    mInitialTargetA = (float) target.getRotation();
+                }
+
+                @Override
+                public boolean onTouch(View target, MotionEvent ev) {
+                    final int action = ev.getActionMasked();
+
+                    // compute raw coordinates
+                    for(int i = 0; i < 10 && i < ev.getPointerCount(); i++) {
+                        pts[i*2] = ev.getX(i);
+                        pts[i*2 + 1] = ev.getY(i);
+                    }
+                    target.getMatrix().mapPoints(pts);
+
+                    switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                        moveToBackOfQueue(target);
+                        mInitialTouchTime = ev.getEventTime();
+                        mA = ev.getPointerId(ev.getActionIndex());
+                        resetTouch(target);
+                        log("action down: " + mA + ", " + mB);
+                        break;
+
+                    case MotionEvent.ACTION_POINTER_DOWN:
+                        if (mB == INVALID_POINTER) {
+                            mB = ev.getPointerId(ev.getActionIndex());
+                            mInitialTouchA = getAngle(target, ev);
+                        }
+                        log("action pointer down: " + mA + ", " + mB);
+                        break;
+
+                    case MotionEvent.ACTION_POINTER_UP:
+                        if (mB == ev.getPointerId(ev.getActionIndex())) {
+                            mB = INVALID_POINTER;
+                            mInitialTargetA = (float) target.getRotation();
+                        }
+                        if (mA == ev.getPointerId(ev.getActionIndex())) {
+                            mA = mB;
+                            resetTouch(target);
+                            mB = INVALID_POINTER;
+                        }
+                        log("action pointer up: " + mA + ", " + mB);
+                        break;
+
+                    case MotionEvent.ACTION_MOVE: {
+                            if (mA != INVALID_POINTER) {
+                                log("action move: " + mA + ", " + mB);
+                                int idx = ev.findPointerIndex(mA);
+                                float x = pts[2 * idx];
+                                float y = pts[2 * idx + 1];
+                                if (mInitialTouchX == -1 && mInitialTouchY == -1) {
+                                    mInitialTouchX = x;
+                                    mInitialTouchY = y;
+                                }
+                                if (getSelected() != target) {
+                                    target.animate().cancel();
+
+                                    target.setX((int) (mInitialTargetX + x - mInitialTouchX));
+                                    target.setY((int) (mInitialTargetY + y - mInitialTouchY));
+                                    if (mB != INVALID_POINTER) {
+                                        float a = getAngle(target, ev);
+                                        target.setRotation(
+                                                (int) (mInitialTargetA + a - mInitialTouchA));
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP: {
+                            if (mA != INVALID_POINTER) {
+                                int idx = ev.findPointerIndex(mA);
+                                float x = pts[2 * idx];
+                                float y = pts[2 * idx + 1];
+                                if (mInitialTouchX == -1 && mInitialTouchY == -1) {
+                                    mInitialTouchX = x;
+                                    mInitialTouchY = y;
+                                }
+                                double distance = Math.hypot(x - mInitialTouchX,
+                                                             y - mInitialTouchY);
+                                if (getSelected() == target) {
+                                    dropOnTable(target);
+                                    clearSelection();
+                                } else if ((ev.getEventTime() - mInitialTouchTime) < mTapTimeout &&
+                                           distance < mTouchSlop) {
+                                    // tap
+                                    target.animate().cancel();
+                                setSelection(target);
+                                }
+                                mA = INVALID_POINTER;
+                                mB = INVALID_POINTER;
+                                log("action up: " + mA + ", " + mB);
+                            }
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_CANCEL:
+                        break;
+                    }
+                    return true;
                 }
             });
+        }
+
+        /** wrap all orientations to the interval [-180, 180). */
+        private float wrapAngle(float angle) {
+            float result = angle + 180;
+            result = ((result % 360) + 360) % 360; // catch negative numbers
+            result -= 180;
+            return result;
         }
 
         private void pickUp(final View photo) {
@@ -420,6 +565,8 @@ public class PhotoTable extends Dream {
             int duration = (int) (1000f * dist / 1000f);
             duration = Math.max(duration, 500);
 
+            photo.setRotation(wrapAngle(photo.getRotation()));
+
             log("animate it");
             // toss onto table
             photo.animate()
@@ -437,16 +584,6 @@ public class PhotoTable extends Dream {
                                 log("endtimes: " + photo.getX());
                             }
                         });
-            
-            photo.setOnClickListener(new OnClickListener() {
-                  @Override
-                  public void onClick(View target) {
-                      if (getSelected() == photo) {
-                          dropOnTable(photo);
-                          clearSelection();
-                      }
-                  }
-              });
         }
 
         private static void log(String message) {
