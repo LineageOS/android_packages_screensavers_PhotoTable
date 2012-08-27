@@ -14,12 +14,6 @@
      limitations under the License.
 -->
 <resources>
-  <!-- Number of photos to drop when the screensaver starts.-->
-  <integer name="initial_drop">3</integer>
-
-  <!-- Maximum number of photos to leave on the table.-->
-  <integer name="table_capacity">3</integer>
-
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
 </resources>
