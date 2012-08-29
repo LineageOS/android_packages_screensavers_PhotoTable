@@ -14,5 +14,6 @@
      limitations under the License.
 -->
 <resources>
-    <color name="tabletop">#ff444444</color>
+    <color name="tabletop_dark">#ff222222</color>
+    <color name="tabletop_light">#ff111111</color>
 </resources>

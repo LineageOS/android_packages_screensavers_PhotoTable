@@ -13,10 +13,18 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/photo"
-    android:layout_width="1024dp"
-    android:layout_height="1024dp"
-    android:scaleType="centerInside"
-    />
-
+<shape
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="90"
+        android:startColor="@color/tabletop_light"
+        android:endColor="@color/tabletop_dark"
+        android:type="linear"
+        />
+    <padding
+        android:left="10dp"
+        android:top="10dp"
+        android:right="10dp"
+        android:bottom="10dp" />
+</shape>
