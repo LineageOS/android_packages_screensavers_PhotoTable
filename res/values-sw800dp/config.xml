@@ -14,8 +14,8 @@
      limitations under the License.
 -->
 <resources>
-  <!-- Number of photos to drop when the screensaver starts.-->
-  <integer name="initial_drop">5</integer>
+  <!-- Milliseconds to wait before the next fast drop.-->
+  <integer name="fast_drop">4000</integer>
 
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
