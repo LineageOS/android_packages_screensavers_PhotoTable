@@ -14,12 +14,11 @@
      limitations under the License.
 -->
 <resources>
-  <!-- Milliseconds between drops, needs to be tuned to slide_duration 
-       to control the number of photos on the table at any given time. -->
+  <!-- Milliseconds between drops. -->
   <integer name="drop_period">30000</integer>
 
-  <!-- Number of photos to drop when the screensaver starts.-->
-  <integer name="initial_drop">10</integer>
+  <!-- Milliseconds to wait before the next fast drop.-->
+  <integer name="fast_drop">2000</integer>
 
   <!-- Maximum number of photos to leave on the table.-->
   <integer name="table_capacity">10</integer>
@@ -40,12 +39,12 @@
   <bool name="enable_manual_image_rotation">false</bool>
 
   <!-- Enable flinging away photos. -->
-  <bool name="enable_fling">false</bool>
+  <bool name="enable_fling">true</bool>
 
   <!-- Honor tap on table to exit. -->
   <bool name="enable_tap_to_exit">false</bool>
 
   <!-- Parts per million damping coefficient of the table. -->
-  <integer name="table_damping">500000</integer>
+  <integer name="table_damping">950000</integer>
 </resources>
 
