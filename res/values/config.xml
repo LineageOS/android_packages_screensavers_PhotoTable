@@ -27,7 +27,25 @@
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">1000000</integer>
 
+  <!-- Parts per million ratio between image size on the table and screen size. -->
+  <integer name="table_ratio">500000</integer>
+
+  <!-- The maximum allowed rotation of images thrown onto the table. -->
+  <integer name="max_image_rotation">30</integer>
+
   <!-- Maximum number of image paths to load before shuffling. -->
   <integer name="image_queue_size">1000</integer>
+
+  <!-- Enable manual rotation of images. -->
+  <bool name="enable_manual_image_rotation">false</bool>
+
+  <!-- Enable flinging away photos. -->
+  <bool name="enable_fling">false</bool>
+
+  <!-- Honor tap on table to exit. -->
+  <bool name="enable_tap_to_exit">false</bool>
+
+  <!-- Parts per million damping coefficient of the table. -->
+  <integer name="table_damping">500000</integer>
 </resources>
 
