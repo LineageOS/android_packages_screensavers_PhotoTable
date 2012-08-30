@@ -66,6 +66,7 @@ public class Table extends FrameLayout {
     private final Dream mDream;
     private final int mDropPeriod;
     private final int mFastDropPeriod;
+    private final int mNowDropDelay;
     private final float mImageRatio;
     private final float mTableRatio;
     private final float mImageRotationLimit;
@@ -94,6 +95,7 @@ public class Table extends FrameLayout {
         mInset = mResources.getDimensionPixelSize(R.dimen.photo_inset);
         mDropPeriod = mResources.getInteger(R.integer.drop_period);
         mFastDropPeriod = mResources.getInteger(R.integer.fast_drop);
+        mNowDropDelay = mResources.getInteger(R.integer.now_drop);
         mImageRatio = mResources.getInteger(R.integer.image_ratio) / 1000000f;
         mTableRatio = mResources.getInteger(R.integer.table_ratio) / 1000000f;
         mImageRotationLimit = (float) mResources.getInteger(R.integer.max_image_rotation);
@@ -299,7 +301,7 @@ public class Table extends FrameLayout {
                             removeView(photo);
                             recycle(photo);
                             if (replace) {
-                                launch();
+                                scheduleNext(mNowDropDelay);
                             }
                         }
                     });
