@@ -14,6 +14,7 @@
      limitations under the License.
 -->
 <resources>
-    <string name="app_name">Photo Table Screensaver</string>
-    <string name="screensaver_name">Photo Table</string>
+    <string name="app_name">Photo Screensavers</string>
+    <string name="table_screensaver_name">Photo Table</string>
+    <string name="flipper_screensaver_name">Photo Flipper</string>
 </resources>

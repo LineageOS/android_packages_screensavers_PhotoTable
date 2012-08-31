@@ -12,7 +12,19 @@
       android:hardwareAccelerated="true"
       <service android:name="PhotoTable"
           android:exported="true"
-          android:label="@string/screensaver_name">
+          android:icon="@mipmap/icon"
+          android:label="@string/table_screensaver_name">
+          <intent-filter>
+              <action android:name="android.intent.action.MAIN" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.DREAM" />
+          </intent-filter>
+      </service>
+      <service android:name="FlipperDream"
+          android:exported="true"
+          android:icon="@mipmap/flip"
+          android:label="@string/flipper_screensaver_name">
+          android:icon="@mipmap/flip"
           <intent-filter>
               <action android:name="android.intent.action.MAIN" />
               <category android:name="android.intent.category.DEFAULT" />
