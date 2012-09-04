@@ -94,7 +94,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
         if (!mEnableFling) {
             return;
         }
-        log("fling " + target.getId() + " " + dX + ", " + dY);
+        log("fling " + dX + ", " + dY);
 
         // convert to pixel per frame
         dX /= 60f;
@@ -178,6 +178,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
                 mInitialTargetA = (float) target.getRotation();
             }
             if (mA == ev.getPointerId(ev.getActionIndex())) {
+                log("primary went up!");
                 mA = mB;
                 resetTouch(target);
                 mB = INVALID_POINTER;
@@ -194,9 +195,15 @@ public class PhotoTouchListener implements View.OnTouchListener {
                         mInitialTouchY = y;
                     } else {
                         float dt = (float) (ev.getEventTime() - mLastEventTime) / 1000f;
-                        mDX = (x - mLastTouchX) / dt;
-                        mDY = (y - mLastTouchY) / dt;
-                        log("moving " + target.getId() + " with velocity: " + mDX + ", " + mDY);
+                        float tmpDX = (x - mLastTouchX) / dt;
+                        float tmpDY = (y - mLastTouchY) / dt;
+                        if (dt > 0f && (Math.abs(tmpDX) > 5f || Math.abs(tmpDY) > 5f)) {
+                            // work around odd bug with multi-finger flings
+                            mDX = tmpDX;
+                            mDY = tmpDY;
+                        }
+                        log("move " + mDX + ", " + mDY);
+
                         mLastEventTime = ev.getEventTime();
                         mLastTouchX = x;
                         mLastTouchY = y;
@@ -246,6 +253,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
             break;
 
         case MotionEvent.ACTION_CANCEL:
+            log("action cancel!");
             break;
         }
 

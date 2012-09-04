@@ -20,6 +20,9 @@
   <!-- Milliseconds to wait before the next fast drop.-->
   <integer name="fast_drop">2000</integer>
 
+  <!-- Milliseconds to wait before the next immediate drop.-->
+  <integer name="now_drop">500</integer>
+
   <!-- Maximum number of photos to leave on the table.-->
   <integer name="table_capacity">10</integer>
 
