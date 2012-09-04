@@ -23,6 +23,9 @@
   <!-- Milliseconds to wait before the next immediate drop.-->
   <integer name="now_drop">500</integer>
 
+  <!-- Length of flip animation in milliseconds.-->
+  <integer name="flip_duration">500</integer>
+
   <!-- Maximum number of photos to leave on the table.-->
   <integer name="table_capacity">10</integer>
 
