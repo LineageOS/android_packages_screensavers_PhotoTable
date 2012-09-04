@@ -28,13 +28,13 @@ public class PhotoTable extends Dream {
     public void onStart() {
         super.onStart();
         setInteractive(true);
-        mTable = new Table(this, null);
-        setContentView(mTable);
-        lightsOut();
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        mTable = new Table(this, null);
+        setContentView(mTable);
+        lightsOut();
     }
 }
