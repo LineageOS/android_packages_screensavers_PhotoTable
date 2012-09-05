@@ -37,6 +37,7 @@ public class PhotoCarousel extends FrameLayout {
     private static final String TAG = "PhotoCarousel";
 
     private final Flipper mFlipper;
+    private final PicasaSource mPicasaSource;
     private final LocalSource mLocalSource;
     private final StockSource mStockSource;
     private final GestureDetector mGestureDetector;
@@ -62,6 +63,7 @@ public class PhotoCarousel extends FrameLayout {
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
+        mPicasaSource = new PicasaSource(context);
         mLocalSource = new LocalSource(context);
         mStockSource = new StockSource(context);
         mPanel = new View[2];
@@ -96,8 +98,12 @@ public class PhotoCarousel extends FrameLayout {
         @Override
         public Bitmap doInBackground(Void... unused) {
             Bitmap decodedPhoto = null;
-            decodedPhoto = mCarousel.mLocalSource.next(mCarousel.mOptions,
+            decodedPhoto = mCarousel.mPicasaSource.next(mCarousel.mOptions,
                     mCarousel.mLongSide, mCarousel.mShortSide);
+            if (decodedPhoto == null) {
+                decodedPhoto = mCarousel.mLocalSource.next(mCarousel.mOptions,
+                        mCarousel.mLongSide, mCarousel.mShortSide);
+            }
             if (decodedPhoto == null) {
                 decodedPhoto = mCarousel.mStockSource.next(mCarousel.mOptions,
                         mCarousel.mLongSide, mCarousel.mShortSide);
