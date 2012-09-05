@@ -29,7 +29,7 @@ import android.view.animation.DecelerateInterpolator;
  */
 public class PhotoTouchListener implements View.OnTouchListener {
     private static final String TAG = "PhotoTouchListener";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
     private static final int INVALID_POINTER = -1;
     private static final int MAX_POINTER_COUNT = 10;
     private final int mTouchSlop;
