@@ -73,8 +73,7 @@ public class Table extends FrameLayout {
     private final boolean mTapToExit;
     private final int mTableCapacity;
     private final int mInset;
-    private final LocalSource mLocalSource;
-    private final StockSource mStockSource;
+    private final PhotoSourcePlexor mPhotoSource;
     private final Resources mResources;
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
@@ -104,8 +103,7 @@ public class Table extends FrameLayout {
         mOnTable = new LinkedList<View>();
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
-        mLocalSource = new LocalSource(getContext());
-        mStockSource = new StockSource(getContext());
+        mPhotoSource = new PhotoSourcePlexor(getContext());
         mLauncher = new Launcher(this);
         mStarted = false;
     }
@@ -210,42 +208,39 @@ public class Table extends FrameLayout {
         return true;
     }
 
-    static class PhotoLaunchTask extends AsyncTask<Void, Void, View> {
-        private Table mTable;
-        public PhotoLaunchTask(Table table) {
-            mTable = table;
+    private class PhotoLaunchTask extends AsyncTask<Void, Void, View> {
+        private int mTries;
+        public PhotoLaunchTask() {
+            mTries = 0;
         }
+
         @Override
         public View doInBackground(Void... unused) {
             log("load a new photo");
-            LayoutInflater inflater = (LayoutInflater) mTable.getContext()
+            LayoutInflater inflater = (LayoutInflater) Table.this.getContext()
                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View photo = inflater.inflate(R.layout.photo, null);
             ImageView image = (ImageView) photo;
             Drawable[] layers = new Drawable[2];
-            Bitmap decodedPhoto = null;
-            decodedPhoto = mTable.mLocalSource.next(mTable.mOptions,
-                                                    mTable.mLongSide, mTable.mShortSide);
-            if (decodedPhoto == null) {
-                decodedPhoto = mTable.mStockSource.next(mTable.mOptions,
-                                                        mTable.mLongSide, mTable.mShortSide);
-            }
-            int photoWidth = mTable.mOptions.outWidth;
-            int photoHeight = mTable.mOptions.outHeight;
-            if (mTable.mOptions.outWidth <= 0 || mTable.mOptions.outHeight <= 0) {
+            Bitmap decodedPhoto = Table.this.mPhotoSource.next(Table.this.mOptions,
+                    Table.this.mLongSide, Table.this.mShortSide);
+            int photoWidth = Table.this.mOptions.outWidth;
+            int photoHeight = Table.this.mOptions.outHeight;
+            if (Table.this.mOptions.outWidth <= 0 || Table.this.mOptions.outHeight <= 0) {
                 photo = null;
             } else {
-                layers[0] = new BitmapDrawable(mTable.mResources, decodedPhoto);
-                layers[1] = mTable.mResources.getDrawable(R.drawable.frame);
+                layers[0] = new BitmapDrawable(Table.this.mResources, decodedPhoto);
+                layers[1] = Table.this.mResources.getDrawable(R.drawable.frame);
                 LayerDrawable layerList = new LayerDrawable(layers);
-                layerList.setLayerInset(0, mTable.mInset, mTable.mInset,
-                                        mTable.mInset, mTable.mInset);
+                layerList.setLayerInset(0, Table.this.mInset, Table.this.mInset,
+                                        Table.this.mInset, Table.this.mInset);
                 image.setImageDrawable(layerList);
 
                 photo.setTag(R.id.photo_width, new Integer(photoWidth));
                 photo.setTag(R.id.photo_height, new Integer(photoHeight));
 
-                photo.setOnTouchListener(new PhotoTouchListener(mTable.getContext(), mTable));
+                photo.setOnTouchListener(new PhotoTouchListener(Table.this.getContext(),
+                                                                Table.this));
             }
 
             return photo;
@@ -254,19 +249,23 @@ public class Table extends FrameLayout {
         @Override
         public void onPostExecute(View photo) {
             if (photo != null) {
-                mTable.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                Table.this.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
                                                        LayoutParams.WRAP_CONTENT));
-                if (mTable.hasSelection()) {
-                    mTable.bringChildToFront(mTable.getSelected());
+                if (Table.this.hasSelection()) {
+                    Table.this.bringChildToFront(Table.this.getSelected());
                 }
                 int width = ((Integer) photo.getTag(R.id.photo_width)).intValue();
                 int height = ((Integer) photo.getTag(R.id.photo_height)).intValue();
 
                 log("drop it");
-                mTable.throwOnTable(photo);
-            }
-            if(mTable.mOnTable.size() < mTable.mTableCapacity) {
-                mTable.scheduleNext(mTable.mFastDropPeriod);
+                Table.this.throwOnTable(photo);
+
+                if(Table.this.mOnTable.size() < Table.this.mTableCapacity) {
+                    Table.this.scheduleNext(Table.this.mFastDropPeriod);
+                }
+            } else if (mTries < 3) {
+                mTries++;
+                this.execute();
             }
         }
     };
@@ -282,7 +281,7 @@ public class Table extends FrameLayout {
             log("inflate it");
             if (mPhotoLaunchTask == null ||
                 mPhotoLaunchTask.getStatus() == AsyncTask.Status.FINISHED) {
-                mPhotoLaunchTask = new PhotoLaunchTask(this);
+                mPhotoLaunchTask = new PhotoLaunchTask();
                 mPhotoLaunchTask.execute();
             }
         }

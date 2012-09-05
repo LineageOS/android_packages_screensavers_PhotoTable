@@ -30,6 +30,8 @@ import android.view.ViewPropertyAnimator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import java.util.HashMap;
+
 /**
  * A FrameLayout that holds two photos, back to back.
  */
@@ -37,9 +39,7 @@ public class PhotoCarousel extends FrameLayout {
     private static final String TAG = "PhotoCarousel";
 
     private final Flipper mFlipper;
-    private final PicasaSource mPicasaSource;
-    private final LocalSource mLocalSource;
-    private final StockSource mStockSource;
+    private final PhotoSourcePlexor mPhotoSource;
     private final GestureDetector mGestureDetector;
     private final View[] mPanel;
     private final BitmapFactory.Options mOptions;
@@ -48,6 +48,7 @@ public class PhotoCarousel extends FrameLayout {
     private boolean mOnce;
     private int mLongSide;
     private int mShortSide;
+    private final HashMap<View, Bitmap> mBitmapStore;
 
     class Flipper implements Runnable {
         @Override
@@ -63,9 +64,9 @@ public class PhotoCarousel extends FrameLayout {
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
-        mPicasaSource = new PicasaSource(context);
-        mLocalSource = new LocalSource(context);
-        mStockSource = new StockSource(context);
+        mPhotoSource = new PhotoSourcePlexor(context);
+        mBitmapStore = new HashMap<View, Bitmap>();
+
         mPanel = new View[2];
         mFlipper = new Flipper();
         mGestureDetector = new GestureDetector(context,
@@ -88,34 +89,34 @@ public class PhotoCarousel extends FrameLayout {
     }
 
     private class PhotoLoadTask extends AsyncTask<Void, Void, Bitmap> {
-        private PhotoCarousel mCarousel;
+        private int mTries;
         private ImageView mDestination;
 
-        public PhotoLoadTask(PhotoCarousel carousel, View destination) {
-            mCarousel = carousel;
+        public PhotoLoadTask(View destination) {
+            mTries = 0;
             mDestination = (ImageView) destination;
         }
+
         @Override
         public Bitmap doInBackground(Void... unused) {
-            Bitmap decodedPhoto = null;
-            decodedPhoto = mCarousel.mPicasaSource.next(mCarousel.mOptions,
-                    mCarousel.mLongSide, mCarousel.mShortSide);
-            if (decodedPhoto == null) {
-                decodedPhoto = mCarousel.mLocalSource.next(mCarousel.mOptions,
-                        mCarousel.mLongSide, mCarousel.mShortSide);
-            }
-            if (decodedPhoto == null) {
-                decodedPhoto = mCarousel.mStockSource.next(mCarousel.mOptions,
-                        mCarousel.mLongSide, mCarousel.mShortSide);
-            }
+            Bitmap decodedPhoto = mPhotoSource.next(PhotoCarousel.this.mOptions,
+                    PhotoCarousel.this.mLongSide, PhotoCarousel.this.mShortSide);
             return decodedPhoto;
         }
 
         @Override
         public void onPostExecute(Bitmap photo) {
             if (photo != null) {
+                Bitmap old = mBitmapStore.get(mDestination);
                 mDestination.setImageBitmap(photo);
-                mCarousel.requestLayout();
+                mBitmapStore.put(mDestination, photo);
+                if (old != null) {
+                    old.recycle();
+                }
+                PhotoCarousel.this.requestLayout();
+            } else if (mTries < 3) {
+                mTries++;
+                this.execute();
             }
         }
     };
@@ -166,7 +167,7 @@ public class PhotoCarousel extends FrameLayout {
         replaceAnim.withEndAction(new Runnable() {
                 @Override
                 public void run() {
-                    new PhotoLoadTask(PhotoCarousel.this, replaceView)
+                    new PhotoLoadTask(replaceView)
                             .execute();
                 }
             });
@@ -192,8 +193,8 @@ public class PhotoCarousel extends FrameLayout {
             mPanel[0] = findViewById(R.id.front);
             mPanel[1] = findViewById(R.id.back);
 
-            new PhotoLoadTask(this, mPanel[0]).execute();
-            new PhotoLoadTask(this, mPanel[1]).execute();
+            new PhotoLoadTask(mPanel[0]).execute();
+            new PhotoLoadTask(mPanel[1]).execute();
 
             scheduleNext(mDropPeriod);
         }
