@@ -15,21 +15,18 @@
  */
 package com.android.dreams.phototable;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 
-import java.util.Random;
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Picks a random image from the local store.
  */
-public class StockSource {
+public class StockSource extends PhotoSource {
     private static final String TAG = "PhotoTable.StockSource";
-    private static final boolean DEBUG = false;
     private static final int[] PHOTOS = {R.drawable.photo_044_002,
         R.drawable.photo_039_002,
         R.drawable.photo_059_003,
@@ -43,54 +40,43 @@ public class StockSource {
         R.drawable.photo_147_002,
         R.drawable.photo_175_004
     };
-    private static Random sRNG = new Random();
 
-    private final Context mContext;
-    private final Resources mResources;
+    private final LinkedList<ImageData> mImageList;
+    private int mNextPosition;
+
+    public static final int TYPE = 1;
+
     public StockSource(Context context) {
-        mContext = context;
-        mResources = context.getResources();
+        super(context);
+        mSourceName = TAG;
+        mImageList = new LinkedList<ImageData>();
+        fillQueue();
     }
 
-    public Bitmap next(BitmapFactory.Options options, int longSide, int shortSide) {
-        log("decoding a local resource to " +  longSide + ", " + shortSide);
-        int photo = PHOTOS[Math.abs(sRNG.nextInt() % PHOTOS.length)];
-
-        options.inJustDecodeBounds = true;
-        options.inSampleSize = 1;
-        BitmapFactory.decodeResource(mResources, photo, options);
-        int rawLongSide = Math.max(options.outWidth, options.outHeight);
-        int rawShortSide = Math.max(options.outWidth, options.outHeight);
-        log("I see bounds of " +  rawLongSide + ", " + rawShortSide);
-        float ratio = Math.min((float) longSide / (float) rawLongSide,
-                               (float) shortSide / (float) rawShortSide);
-        while (ratio < 0.5) {
-            options.inSampleSize *= 2;
-            ratio *= 2;
+    @Override
+    protected Collection<ImageData> findImages(int howMany) {
+        if (mImageList.isEmpty()) {
+            for (int i = 0; i < PHOTOS.length; i++) {
+                ImageData data = new ImageData();
+                data.type = TYPE;
+                data.id = Integer.toString(PHOTOS[i]);
+                mImageList.offer(data);
+            }
         }
-        log("decoding with inSampleSize " +  options.inSampleSize);
-        options.inJustDecodeBounds = false;
-        Bitmap bitmap = BitmapFactory.decodeResource(mResources, photo, options);
-        rawLongSide = Math.max(options.outWidth, options.outHeight);
-        rawShortSide = Math.max(options.outWidth, options.outHeight);
-        ratio = Math.min((float) longSide / (float) rawLongSide,
-                         (float) shortSide / (float) rawShortSide);
-
-        if (ratio < 1.0f) {
-            log("still too big, scaling down by " + ratio);
-            int photoWidth = (int) (ratio * options.outWidth);
-            int photoHeight = (int) (ratio * options.outHeight);
-            bitmap = Bitmap.createScaledBitmap(bitmap, photoWidth, photoHeight, true);
-        }
-
-        log("returning bitmap sized to " + bitmap.getWidth() + ", " + bitmap.getHeight());
-        return bitmap;
+        return mImageList;
     }
 
-    private static void log(String message) {
-        if (DEBUG) {
-            Log.i(TAG, message);
+    @Override
+    protected InputStream getStream(ImageData data) {
+        InputStream is = null;
+        try {
+            log(TAG, "opening:" + data.id);
+            is = mResources.openRawResource(Integer.valueOf(data.id));
+        } catch (Exception ex) {
+            log(TAG, ex.toString());
+            is = null;
         }
-    }
 
+        return is;
+    }
 }
