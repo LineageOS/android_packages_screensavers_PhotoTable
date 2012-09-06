@@ -18,10 +18,11 @@ package com.android.dreams.phototable;
 import android.service.dreams.Dream;
 
 /**
- * Example interactive screen saver: single photo with flipping.
+ * Example interactive screen saver: flick photos onto a table.
  */
-public class FlipperDream extends Dream {
-    public static final String TAG = "FlipperDream";
+public class PhotoTableDream extends Dream {
+    public static final String TAG = "PhotoTableDream";
+    private PhotoTable mTable;
 
     @Override
     public void onStart() {
@@ -32,7 +33,8 @@ public class FlipperDream extends Dream {
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
+        mTable = new PhotoTable(this, null);
+        setContentView(mTable);
         lightsOut();
-        setContentView(R.layout.carousel);
     }
 }
