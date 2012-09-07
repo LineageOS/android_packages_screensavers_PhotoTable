@@ -16,6 +16,7 @@
 package com.android.dreams.phototable;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.InputStream;
@@ -26,6 +27,7 @@ import java.util.LinkedList;
  * Picks a random image from the local store.
  */
 public class StockSource extends PhotoSource {
+    public static final String ALBUM_ID = "com.android.dreams.phototable.StockSource";
     private static final String TAG = "PhotoTable.StockSource";
     private static final int[] PHOTOS = {R.drawable.photo_044_002,
         R.drawable.photo_039_002,
@@ -42,15 +44,29 @@ public class StockSource extends PhotoSource {
     };
 
     private final LinkedList<ImageData> mImageList;
+    private final LinkedList<AlbumData> mAlbumList;
+
     private int mNextPosition;
 
-    public static final int TYPE = 1;
-
-    public StockSource(Context context) {
-        super(context);
+    public StockSource(Context context, SharedPreferences settings) {
+        super(context, settings);
         mSourceName = TAG;
         mImageList = new LinkedList<ImageData>();
+        mAlbumList = new LinkedList<AlbumData>();
         fillQueue();
+    }
+
+    @Override
+    public Collection<AlbumData> findAlbums() {
+        if (mAlbumList.isEmpty()) {
+            AlbumData data = new AlbumData();
+            data.id = ALBUM_ID;
+            data.title = mResources.getString(R.string.stock_photo_album_name, "Default Photos");
+            data.thumbnailUrl = mResources.getString(R.string.stock_photo_thumbnail_url);
+            mAlbumList.offer(data);
+        }
+        log(TAG, "returning a list of albums: " + mAlbumList.size());
+        return mAlbumList;
     }
 
     @Override
@@ -58,7 +74,6 @@ public class StockSource extends PhotoSource {
         if (mImageList.isEmpty()) {
             for (int i = 0; i < PHOTOS.length; i++) {
                 ImageData data = new ImageData();
-                data.type = TYPE;
                 data.id = Integer.toString(PHOTOS[i]);
                 mImageList.offer(data);
             }

@@ -34,7 +34,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
     private static final int MAX_POINTER_COUNT = 10;
     private final int mTouchSlop;
     private final int mTapTimeout;
-    private final Table mTable;
+    private final PhotoTable mTable;
     private final float mBeta;
     private final float mTableRatio;
     private final boolean mEnableFling;
@@ -56,7 +56,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
     private float[] pts = new float[MAX_POINTER_COUNT];
     private float[] tmp = new float[MAX_POINTER_COUNT];
 
-    public PhotoTouchListener(Context context, Table table) {
+    public PhotoTouchListener(Context context, PhotoTable table) {
         mTable = table;
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         mTouchSlop = configuration.getScaledTouchSlop();

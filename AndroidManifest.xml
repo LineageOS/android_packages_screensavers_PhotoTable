@@ -10,26 +10,47 @@
       android:icon="@mipmap/icon"
       android:largeHeap="true">
       android:hardwareAccelerated="true"
-      <service android:name="PhotoTable"
+      <service android:name="PhotoTableDream"
           android:exported="true"
           android:icon="@mipmap/icon"
+          android:label="@string/table_screensaver_name">
+          <meta-data
+             android:name="android.service.dreams.config_activity"
+             android:value="com.android.dreams.phototable/.PhotoTableDreamSettings"/>
+          <intent-filter>
+              <action android:name="android.intent.action.MAIN" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.DREAM" />
+          </intent-filter>
+      </service>
+      <activity android:name="PhotoTableDreamSettings"
+          android:exported="true"
           android:label="@string/table_screensaver_name">
           <intent-filter>
               <action android:name="android.intent.action.MAIN" />
               <category android:name="android.intent.category.DEFAULT" />
-              <category android:name="android.intent.category.DREAM" />
           </intent-filter>
-      </service>
+      </activity>
       <service android:name="FlipperDream"
           android:exported="true"
           android:icon="@mipmap/flip"
           android:label="@string/flipper_screensaver_name">
-          android:icon="@mipmap/flip"
+          <meta-data
+             android:name="android.service.dreams.config_activity"
+             android:value="com.android.dreams.phototable/.FlipperDreamSettings"/>
           <intent-filter>
               <action android:name="android.intent.action.MAIN" />
               <category android:name="android.intent.category.DEFAULT" />
               <category android:name="android.intent.category.DREAM" />
           </intent-filter>
       </service>
+      <activity android:name="FlipperDreamSettings"
+          android:exported="true"
+          android:label="@string/flipper_screensaver_name">
+          <intent-filter>
+              <action android:name="android.intent.action.MAIN" />
+              <category android:name="android.intent.category.DEFAULT" />
+          </intent-filter>
+      </activity>
   </application>
 </manifest>

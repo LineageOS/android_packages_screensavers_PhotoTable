@@ -16,12 +16,14 @@
 package com.android.dreams.phototable;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.provider.MediaStore;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 /**
@@ -32,13 +34,69 @@ public class LocalSource extends PhotoSource {
 
     private int mNextPosition;
 
-    public static final int TYPE = 2;
-
-    public LocalSource(Context context) {
-        super(context);
+    public LocalSource(Context context, SharedPreferences settings) {
+        super(context, settings);
         mSourceName = TAG;
         mNextPosition = -1;
         fillQueue();
+    }
+
+    @Override
+    public Collection<AlbumData> findAlbums() {
+        log(TAG, "finding albums");
+        HashMap<String, AlbumData> foundAlbums = new HashMap<String, AlbumData>();
+
+        String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.BUCKET_ID,
+                MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.Media.DATE_TAKEN};
+        // This is a horrible hack that closes the where clause and injects a grouping clause.
+        Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+
+            int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+            int bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
+            int nameIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+            int updatedIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATE_TAKEN);
+
+            if (bucketIndex < 0) {
+                log(TAG, "can't find the ID column!");
+            } else {
+                while (!cursor.isAfterLast()) {
+                    String id = TAG + ":" + cursor.getString(bucketIndex);
+                    AlbumData data = foundAlbums.get(id);
+                    if (foundAlbums.get(id) == null) {
+                        data = new AlbumData();
+                        data.id = id;
+
+                        if (dataIndex >= 0) {
+                            data.thumbnailUrl = cursor.getString(dataIndex);
+                        }
+
+                        if (nameIndex >= 0) {
+                            data.title = cursor.getString(nameIndex);
+                        } else {
+                            data.title =
+                                    mResources.getString(R.string.unknown_album_name, "Unknown");
+                        }
+
+                        log(TAG, data.title + " found");
+                        foundAlbums.put(id, data);
+                    }
+                    if (updatedIndex >= 0) {
+                        long updated = cursor.getLong(updatedIndex);
+                        data.updated = (data.updated == 0 ?
+                                        updated :
+                                        Math.min(data.updated, updated));
+                    }
+                    cursor.moveToNext();
+                }
+            }
+            cursor.close();
+
+        }
+        log(TAG, "found " + foundAlbums.size() + " items.");
+        return foundAlbums.values();
     }
 
     @Override
@@ -48,14 +106,22 @@ public class LocalSource extends PhotoSource {
 
         String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.ORIENTATION,
                 MediaStore.Images.Media.BUCKET_ID, MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
-        String[] selectionArgs = {}; // settings go here
         String selection = "";
-        for (String arg : selectionArgs) {
-            if (selection.length() > 0) {
-                selection += " OR ";
+        for (String id : AlbumSettings.getEnabledAlbums(mSettings)) {
+            if (id.startsWith(TAG)) {
+                String[] parts = id.split(":");
+                if (parts.length > 1) {
+                    if (selection.length() > 0) {
+                        selection += " OR ";
+                    }
+                    selection += MediaStore.Images.Media.BUCKET_ID + " = '" + parts[1] + "'";
+                }
             }
-            selection += MediaStore.Images.Media.BUCKET_ID + " = '" + arg + "'";
         }
+        if (selection.isEmpty()) {
+            return foundImages;
+        }
+
         Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection, selection, null, null);
         if (cursor != null) {
@@ -77,7 +143,6 @@ public class LocalSource extends PhotoSource {
             } else {
                 while (foundImages.size() < howMany && !cursor.isAfterLast()) {
                     ImageData data = new ImageData();
-                    data.type = TYPE;
                     data.url = cursor.getString(dataIndex);
                     data.orientation = cursor.getInt(orientationIndex);
                     foundImages.offer(data);

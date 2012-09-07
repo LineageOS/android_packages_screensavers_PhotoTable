@@ -16,6 +16,7 @@
 package com.android.dreams.phototable;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 
@@ -34,13 +35,33 @@ public class PhotoSourcePlexor extends PhotoSource {
     private final PhotoSource mPicasaSource;
     private final PhotoSource mLocalSource;
     private final PhotoSource mStockSource;
+    private SharedPreferences mSettings;
 
-    public PhotoSourcePlexor(Context context) {
-        super(context);
+    public PhotoSourcePlexor(Context context, SharedPreferences settings) {
+        super(context, settings);
         mSourceName = TAG;
-        mPicasaSource = new PicasaSource(context);
-        mLocalSource = new LocalSource(context);
-        mStockSource = new StockSource(context);
+        mPicasaSource = new PicasaSource(context, settings);
+        mLocalSource = new LocalSource(context, settings);
+        mStockSource = new StockSource(context, settings);
+    }
+
+    @Override
+    public Collection<AlbumData> findAlbums() {
+        log(TAG, "finding albums");
+        LinkedList<AlbumData> foundAlbums = new LinkedList<AlbumData>();
+
+        foundAlbums.addAll(mPicasaSource.findAlbums());
+        log(TAG, "found " + foundAlbums.size() + " network albums");
+
+        foundAlbums.addAll(mLocalSource.findAlbums());
+        log(TAG, "found " + foundAlbums.size() + " user albums");
+
+        if (foundAlbums.isEmpty()) {
+            foundAlbums.addAll(mStockSource.findAlbums());
+        }
+        log(TAG, "found " + foundAlbums.size() + " albums");
+
+        return foundAlbums;
     }
 
     @Override
@@ -64,18 +85,6 @@ public class PhotoSourcePlexor extends PhotoSource {
 
     @Override
     protected InputStream getStream(ImageData data) {
-        switch (data.type) {
-        case PicasaSource.TYPE:
-            return mPicasaSource.getStream(data);
-
-        case LocalSource.TYPE:
-            return mLocalSource.getStream(data);
-
-        case StockSource.TYPE:
-            return mStockSource.getStream(data);
-
-        default:
-            return null;
-        }
+        return data.getStream();
     }
 }
