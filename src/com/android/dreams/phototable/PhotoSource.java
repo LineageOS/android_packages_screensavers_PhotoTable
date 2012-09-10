@@ -71,6 +71,7 @@ public abstract class PhotoSource {
 
     private final LinkedList<ImageData> mImageQueue;
     private final int mMaxQueueSize;
+    private final float mMaxCropRatio;
 
     protected final Context mContext;
     protected final Resources mResources;
@@ -88,6 +89,7 @@ public abstract class PhotoSource {
         mResources = context.getResources();
         mImageQueue = new LinkedList<ImageData>();
         mMaxQueueSize = mResources.getInteger(R.integer.image_queue_size);
+        mMaxCropRatio = mResources.getInteger(R.integer.max_crop_ratio) / 1000000f;
         mRNG = new Random();
     }
 
@@ -122,8 +124,13 @@ public abstract class PhotoSource {
                 log(TAG, "I see bounds of " +  rawLongSide + ", " + rawShortSide);
 
                 if (rawLongSide != -1 && rawShortSide != -1) {
-                    float ratio = Math.max((float) longSide / (float) rawLongSide,
-                                           (float) shortSide / (float) rawShortSide);
+                    float insideRatio = Math.max((float) longSide / (float) rawLongSide,
+                                                 (float) shortSide / (float) rawShortSide);
+                    float outsideRatio = Math.max((float) longSide / (float) rawLongSide,
+                                                  (float) shortSide / (float) rawShortSide);
+                    float ratio = (outsideRatio / insideRatio < mMaxCropRatio ?
+                                   outsideRatio : insideRatio);
+
                     while (ratio < 0.5) {
                         options.inSampleSize *= 2;
                         ratio *= 2;
@@ -142,6 +149,7 @@ public abstract class PhotoSource {
                         log(TAG, "still too big, scaling down by " + ratio);
                         options.outWidth = (int) (ratio * options.outWidth);
                         options.outHeight = (int) (ratio * options.outHeight);
+
                         image = Bitmap.createScaledBitmap(image,
                                                           options.outWidth, options.outHeight,
                                                           true);

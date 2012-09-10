@@ -26,7 +26,7 @@ public class FlipperDream extends Dream {
     @Override
     public void onStart() {
         super.onStart();
-        setInteractive(true);
+        setInteractive(false);
     }
 
     @Override

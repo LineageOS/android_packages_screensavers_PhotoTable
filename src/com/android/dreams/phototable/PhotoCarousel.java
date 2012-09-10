@@ -37,6 +37,10 @@ import java.util.HashMap;
  */
 public class PhotoCarousel extends FrameLayout {
     private static final String TAG = "PhotoCarousel";
+    private static final boolean DEBUG = false;
+
+    private static final int LANDSCAPE = 1;
+    private static final int PORTRAIT = 2;
 
     private final Flipper mFlipper;
     private final PhotoSourcePlexor mPhotoSource;
@@ -46,6 +50,9 @@ public class PhotoCarousel extends FrameLayout {
     private final int mFlipDuration;
     private final int mDropPeriod;
     private boolean mOnce;
+    private int mOrientation;
+    private int mWidth;
+    private int mHeight;
     private int mLongSide;
     private int mShortSide;
     private final HashMap<View, Bitmap> mBitmapStore;
@@ -74,7 +81,7 @@ public class PhotoCarousel extends FrameLayout {
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onFling(MotionEvent e1, MotionEvent e2, float vX, float vY) {
-                        Log.i(TAG, "fling with " + vX);
+                        log("fling with " + vX);
                         flip(Math.signum(vX));
                         return true;
                     }
@@ -107,7 +114,16 @@ public class PhotoCarousel extends FrameLayout {
         public void onPostExecute(Bitmap photo) {
             if (photo != null) {
                 Bitmap old = mBitmapStore.get(mDestination);
+                int width = PhotoCarousel.this.mOptions.outWidth;
+                int height = PhotoCarousel.this.mOptions.outHeight;
+                int orientation = (width > height ? LANDSCAPE : PORTRAIT);
+
                 mDestination.setImageBitmap(photo);
+                mDestination.setTag(R.id.photo_orientation, new Integer(orientation));
+                mDestination.setTag(R.id.photo_width, new Integer(width));
+                mDestination.setTag(R.id.photo_height, new Integer(height));
+                PhotoCarousel.this.setScaleType(mDestination);
+
                 mBitmapStore.put(mDestination, photo);
                 if (old != null) {
                     old.recycle();
@@ -125,12 +141,35 @@ public class PhotoCarousel extends FrameLayout {
         }
     };
 
+    private void setScaleType(View photo) {
+        if (photo.getTag(R.id.photo_orientation) != null) {
+            int orientation = ((Integer) photo.getTag(R.id.photo_orientation)).intValue();
+            int width = ((Integer) photo.getTag(R.id.photo_width)).intValue();
+            int height = ((Integer) photo.getTag(R.id.photo_height)).intValue();
+
+            if (width < mWidth && height < mHeight) {
+                log("too small: FIT_CENTER");
+                ((ImageView) photo).setScaleType(ImageView.ScaleType.CENTER_CROP);
+            } else if (orientation == mOrientation) {
+                log("orientations match: CENTER_CROP");
+                ((ImageView) photo).setScaleType(ImageView.ScaleType.CENTER_CROP);
+            } else {
+                log("orientations do not match: CENTER_INSIDE");
+                ((ImageView) photo).setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            }
+        } else {
+            log("no tag!");
+        }
+    }
+
     public void flip(float sgn) {
         mPanel[0].animate().cancel();
         mPanel[1].animate().cancel();
 
         float frontY = mPanel[0].getRotationY();
         float backY = mPanel[1].getRotationY();
+        float frontA = mPanel[0].getAlpha();
+        float backA = mPanel[1].getAlpha();
 
         frontY = wrap360(frontY);
         backY = wrap360(backY);
@@ -140,16 +179,11 @@ public class PhotoCarousel extends FrameLayout {
 
         frontY = lockTo180(frontY + sgn * 180f);
         backY = lockTo180(backY + sgn * 180f);
+        frontA = 1f - frontA;
+        backA = 1f - backA;
 
-        float frontA = 1f;
-        float backA = 0f;
-        if (frontY == 180f || frontY == -180f) {
-            frontA = 0f;
-            backA = 1f;
-        } else {
-            frontA = 1f;
-            backA = 0f;
-        }
+	// Don't rotate
+	frontY = backY = 0f;
 
         ViewPropertyAnimator frontAnim = mPanel[0].animate()
                 .rotationY(frontY)
@@ -184,12 +218,12 @@ public class PhotoCarousel extends FrameLayout {
 
     @Override
     public void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-        int height = bottom - top;
-        int width = right - left;
+        mHeight = bottom - top;
+        mWidth = right - left;
 
-        mLongSide = (int) Math.max(width, height);
-        mShortSide = (int) Math.min(width, height);
+        mOrientation = (mWidth > mHeight ? LANDSCAPE : PORTRAIT);
+        mLongSide = (int) Math.max(mWidth, mHeight);
+        mShortSide = (int) Math.min(mWidth, mHeight);
 
         if (!mOnce) {
             mOnce = true;
@@ -202,6 +236,12 @@ public class PhotoCarousel extends FrameLayout {
 
             scheduleNext(mDropPeriod);
         }
+
+        // reset scale types for new aspect ratio
+        setScaleType(mPanel[0]);
+        setScaleType(mPanel[1]);
+
+        super.onLayout(changed, left, top, right, bottom);
     }
 
     @Override
@@ -213,5 +253,11 @@ public class PhotoCarousel extends FrameLayout {
     public void scheduleNext(int delay) {
         removeCallbacks(mFlipper);
         postDelayed(mFlipper, delay);
+    }
+
+    private void log(String message) {
+        if (DEBUG) {
+            Log.i(TAG, message);
+        }
     }
 }
