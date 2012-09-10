@@ -30,7 +30,5 @@
       android:layout_height="match_parent"
       android:scaleType="centerInside"
       android:alpha="0"
-      android:rotationY="180"
       />
 </com.android.dreams.phototable.PhotoCarousel>
-
