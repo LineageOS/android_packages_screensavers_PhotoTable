@@ -64,7 +64,8 @@ public class PhotoCarousel extends FrameLayout {
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
-        mPhotoSource = new PhotoSourcePlexor(context);
+        mPhotoSource = new PhotoSourcePlexor(getContext(),
+                getContext().getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0));
         mBitmapStore = new HashMap<View, Bitmap>();
 
         mPanel = new View[2];
@@ -89,11 +90,9 @@ public class PhotoCarousel extends FrameLayout {
     }
 
     private class PhotoLoadTask extends AsyncTask<Void, Void, Bitmap> {
-        private int mTries;
         private ImageView mDestination;
 
         public PhotoLoadTask(View destination) {
-            mTries = 0;
             mDestination = (ImageView) destination;
         }
 
@@ -114,9 +113,14 @@ public class PhotoCarousel extends FrameLayout {
                     old.recycle();
                 }
                 PhotoCarousel.this.requestLayout();
-            } else if (mTries < 3) {
-                mTries++;
-                this.execute();
+            } else {
+                postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            new PhotoLoadTask(mDestination)
+                                    .execute();
+                        }
+                    }, 100);
             }
         }
     };

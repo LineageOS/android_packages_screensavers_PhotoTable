@@ -52,5 +52,9 @@
 
   <!-- Parts per million damping coefficient of the table. -->
   <integer name="table_damping">950000</integer>
+
+  <!-- Maximum number of albums to pull for "Photos from Posts". -->
+  <integer name="max_post_albums">100</integer>
+
 </resources>
 

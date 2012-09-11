@@ -13,12 +13,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-    <string name="app_name">Photo Screensavers</string>
-    <string name="table_screensaver_name">Photo Table</string>
-    <string name="flipper_screensaver_name">Photo Flipper</string>
-    <string name="posts_album_name">Photos from Posts</string>
-    <string name="unknown_album_name">Unnamed Album</string>
-    <string name="stock_photo_album_name">Stock Photos</string>
-    <string name="stock_photo_thumbnail_url">https://lh4.googleusercontent.com/-Wd4RWlOXkSo/STt6r8uEJBI/AAAAAAAABJk/2An3QS-aD5c/s256/044_002.jpg</string>
-</resources>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal" >
+  <CheckBox android:id="@+id/enabled" />
+</LinearLayout >

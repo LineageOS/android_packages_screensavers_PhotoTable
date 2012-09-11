@@ -17,6 +17,7 @@ package com.android.dreams.phototable;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -46,25 +47,43 @@ public abstract class PhotoSource {
     // that we can mark and reset the input stream to avoid duplicate network i/o
     private static final int BUFFER_SIZE = 128 * 1024;
 
-    public static class ImageData {
+    public class ImageData {
         public String id;
         public String url;
         public int orientation;
-        public int type;
+
+        InputStream getStream() {
+            return PhotoSource.this.getStream(this);
+        }
     }
 
-    private final Context mContext;
+    public static class AlbumData {
+        public String id;
+        public String title;
+        public String thumbnailUrl;
+        public long updated;
+
+        @Override
+        public String toString() {
+            return title;
+        }
+    }
+
     private final LinkedList<ImageData> mImageQueue;
     private final int mMaxQueueSize;
 
+    protected final Context mContext;
     protected final Resources mResources;
-    protected ContentResolver mResolver;
-    protected String mSourceName;
     protected final Random mRNG;
+    protected final SharedPreferences mSettings;
+    protected final ContentResolver mResolver;
 
-    public PhotoSource(Context context) {
+    protected String mSourceName;
+
+    public PhotoSource(Context context, SharedPreferences settings) {
         mSourceName = TAG;
         mContext = context;
+        mSettings = settings;
         mResolver = mContext.getContentResolver();
         mResources = context.getResources();
         mImageQueue = new LinkedList<ImageData>();
@@ -91,7 +110,7 @@ public abstract class PhotoSource {
             ImageData data = mImageQueue.poll();
             InputStream is = null;
             try {
-                is = getStream(data);
+                is = data.getStream();
                 BufferedInputStream bis = new BufferedInputStream(is);
                 bis.mark(BUFFER_SIZE);
 
@@ -180,4 +199,5 @@ public abstract class PhotoSource {
 
     protected abstract InputStream getStream(ImageData data);
     protected abstract Collection<ImageData> findImages(int howMany);
+    public abstract Collection<AlbumData> findAlbums();
 }
