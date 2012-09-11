@@ -17,5 +17,6 @@
 <resources>
     <item type="id" name="photo_height" />
     <item type="id" name="photo_width" />
+    <item type="id" name="photo_orientation" />
     <item type="id" name="data_payload" />
 </resources>

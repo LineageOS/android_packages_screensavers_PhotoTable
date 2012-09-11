@@ -80,12 +80,12 @@ public class PicasaSource extends PhotoSource {
             if (id.startsWith(TAG)) {
                 String[] parts = id.split(":");
                 if (parts.length > 1) {
-                    if (selection.length() > 0) {
-                        selection.append(" OR ");
-                    }
                     if (PICASA_BUZZ_TYPE.equals(parts[1])) {
                         usePosts = true;
                     } else {
+                        if (selection.length() > 0) {
+                            selection.append(" OR ");
+                        }
                         log(TAG, "adding on: " + parts[1]);
                         selection.append(PICASA_ALBUM_ID + " = '" + parts[1] + "'");
                     }
@@ -223,9 +223,9 @@ public class PicasaSource extends PhotoSource {
                     if (isBuzz) {
                         id = TAG + ":" + PICASA_BUZZ_TYPE;
                     }
-
-                    if (foundAlbums.get(id) == null) {
-                        AlbumData data = new AlbumData();
+                    AlbumData data = foundAlbums.get(id);
+                    if (data == null) {
+                        data = new AlbumData();
                         data.id = id;
 
                         if (isBuzz) {
@@ -238,16 +238,17 @@ public class PicasaSource extends PhotoSource {
                                     mResources.getString(R.string.unknown_album_name, "Unknown");
                         }
 
-                        if (updatedIndex >= 0) {
-                            data.updated = cursor.getLong(updatedIndex);
-                        }
-
                         if (thumbIndex >= 0) {
                             data.thumbnailUrl = cursor.getString(thumbIndex);
                         }
 
                         log(TAG, "found " + data.title + "(" + data.id + ")");
                         foundAlbums.put(id, data);
+                    }
+
+                    if (updatedIndex >= 0) {
+                        data.updated = (long) Math.max(data.updated,
+                                                       cursor.getLong(updatedIndex));
                     }
 
                     cursor.moveToNext();
