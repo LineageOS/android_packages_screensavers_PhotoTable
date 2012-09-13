@@ -13,9 +13,21 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-    <color name="tabletop_light">#ff111111</color>
-    <color name="tabletop_dark">#ff222222</color>
-    <color name="vignette_light">#00000000</color>
-    <color name="vignette_dark">#bf000000</color>
-</resources>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+  <com.android.dreams.phototable.PhotoTable
+    android:background="@+drawable/table"
+    android:id="@+id/table"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+  <View
+    android:background="@+drawable/vignette_br"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+  <View
+    android:background="@+drawable/vignette_tl"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+</FrameLayout>

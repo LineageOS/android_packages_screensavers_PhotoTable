@@ -13,9 +13,14 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-    <color name="tabletop_light">#ff111111</color>
-    <color name="tabletop_dark">#ff222222</color>
-    <color name="vignette_light">#00000000</color>
-    <color name="vignette_dark">#bf000000</color>
-</resources>
+<shape
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="@color/vignette_light"
+        android:centerColor="@color/vignette_light"
+        android:endColor="@color/vignette_dark"
+        android:type="linear"
+        android:angle="135"
+        />
+</shape>
