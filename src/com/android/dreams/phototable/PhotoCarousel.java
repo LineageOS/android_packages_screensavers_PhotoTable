@@ -67,7 +67,7 @@ public class PhotoCarousel extends FrameLayout {
     public PhotoCarousel(Context context, AttributeSet as) {
         super(context, as);
         final Resources resources = getResources();
-        mDropPeriod = resources.getInteger(R.integer.drop_period);
+        mDropPeriod = resources.getInteger(R.integer.carousel_drop_period);
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
