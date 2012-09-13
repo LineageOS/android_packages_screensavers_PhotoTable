@@ -176,6 +176,20 @@ public class PhotoTable extends FrameLayout {
         return p;
     }
 
+    private static PointF randMultiDrop(int n, float i, float j, int width, int height) {
+        log("randMultiDrop (" + n + "," + i + ", " + j + ", " + width + ", " + height + ")");
+        final float[] cx = {0.3f, 0.3f, 0.5f, 0.7f, 0.7f};
+        final float[] cy = {0.3f, 0.7f, 0.5f, 0.3f, 0.7f};
+        n = Math.abs(n);
+        float x = cx[n % cx.length];
+        float y = cy[n % cx.length];
+        PointF p = new PointF();
+        p.x = x * width + 0.05f * width * i;
+        p.y = y * height + 0.05f * height * j;
+        log("randInCenter returning " + p.x + "," + p.y);
+        return p;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -342,8 +356,9 @@ public class PhotoTable extends FrameLayout {
 
     public void dropOnTable(final View photo, final Interpolator interpolator) {
         float angle = randfrange(-mImageRotationLimit, mImageRotationLimit);
-        PointF p = randInCenter((float) sRNG.nextGaussian(), (float) sRNG.nextGaussian(),
-                                mWidth, mHeight);
+        PointF p = randMultiDrop(sRNG.nextInt(),
+                                 (float) sRNG.nextGaussian(), (float) sRNG.nextGaussian(),
+                                 mWidth, mHeight);
         float x = p.x;
         float y = p.y;
 
@@ -354,8 +369,8 @@ public class PhotoTable extends FrameLayout {
         float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
         float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
 
-        x -= mTableRatio * mLongSide / 2f;
-        y -= mTableRatio * mLongSide / 2f;
+        x -= mLongSide / 2f;
+        y -= mShortSide / 2f;
         log("fixed offset is " + x + ", " + y);
 
         float dx = x - x0;
