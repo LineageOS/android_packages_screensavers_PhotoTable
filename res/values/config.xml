@@ -59,5 +59,16 @@
   <!-- Parts per million maximum cropping allow to fit image to screen. -->
   <integer name="max_crop_ratio">1200000</integer>
 
+  <!-- starting angle in degrees for thrown images (always lands near zero). -->
+  <integer name="image_throw_rotatioan">-200</integer>
+
+  <!-- time thrown image land, in parts per million from 0 to 1. -->
+  <integer name="soft_landing_time">500000</integer>
+
+  <!-- fraction of distance covered before landing, in parts per million from 0 to 1. -->
+  <integer name="soft_landing_distance">900000</integer>
+
+  <!-- Drop animation exponent. -->
+  <integer name="drop_deceleration_exponent">4</integer>
 </resources>
 

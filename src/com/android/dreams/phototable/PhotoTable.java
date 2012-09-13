@@ -32,6 +32,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.FrameLayout.LayoutParams;
 import android.widget.ImageView;
@@ -71,11 +72,15 @@ public class PhotoTable extends FrameLayout {
     private final float mImageRatio;
     private final float mTableRatio;
     private final float mImageRotationLimit;
+    private final float mThrowRotation;
+    private final float mThrowSpeed;
     private final boolean mTapToExit;
     private final int mTableCapacity;
     private final int mInset;
     private final PhotoSourcePlexor mPhotoSource;
     private final Resources mResources;
+    private final Interpolator mThrowInterpolator;
+    private final Interpolator mDropInterpolator;
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
     private boolean mIsLandscape;
@@ -99,8 +104,15 @@ public class PhotoTable extends FrameLayout {
         mImageRatio = mResources.getInteger(R.integer.image_ratio) / 1000000f;
         mTableRatio = mResources.getInteger(R.integer.table_ratio) / 1000000f;
         mImageRotationLimit = (float) mResources.getInteger(R.integer.max_image_rotation);
+        mThrowSpeed = mResources.getDimension(R.dimen.image_throw_speed);
+        mThrowRotation = (float) mResources.getInteger(R.integer.image_throw_rotatioan);
         mTableCapacity = mResources.getInteger(R.integer.table_capacity);
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
+        mThrowInterpolator = new SoftLandingInterpolator(
+                mResources.getInteger(R.integer.soft_landing_time) / 1000000f,
+                mResources.getInteger(R.integer.soft_landing_distance) / 1000000f);
+        mDropInterpolator = new DecelerateInterpolator(
+                (float) mResources.getInteger(R.integer.drop_deceleration_exponent));
         mOnTable = new LinkedList<View>();
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
@@ -317,13 +329,18 @@ public class PhotoTable extends FrameLayout {
         log("start offscreen");
         int width = ((Integer) photo.getTag(R.id.photo_width));
         int height = ((Integer) photo.getTag(R.id.photo_height));
-        photo.setRotation(-100.0f);
+        photo.setRotation(mThrowRotation);
         photo.setX(-mLongSide);
         photo.setY(-mLongSide);
-        dropOnTable(photo);
+
+        dropOnTable(photo, mThrowInterpolator);
     }
 
     public void dropOnTable(final View photo) {
+        dropOnTable(photo, mDropInterpolator);
+    }
+
+    public void dropOnTable(final View photo, final Interpolator interpolator) {
         float angle = randfrange(-mImageRotationLimit, mImageRotationLimit);
         PointF p = randInCenter((float) sRNG.nextGaussian(), (float) sRNG.nextGaussian(),
                                 mWidth, mHeight);
@@ -345,7 +362,7 @@ public class PhotoTable extends FrameLayout {
         float dy = y - y0;
 
         float dist = (float) (Math.sqrt(dx * dx + dy * dy));
-        int duration = (int) (1000f * dist / 400f);
+        int duration = (int) (1000f * dist / mThrowSpeed);
         duration = Math.max(duration, 1000);
 
         log("animate it");
@@ -358,7 +375,7 @@ public class PhotoTable extends FrameLayout {
                 .x(x)
                 .y(y)
                 .setDuration(duration)
-                .setInterpolator(new DecelerateInterpolator(3f))
+                .setInterpolator(interpolator)
                 .withEndAction(new Runnable() {
                         @Override
                             public void run() {
@@ -393,7 +410,7 @@ public class PhotoTable extends FrameLayout {
         float dy = y - y0;
 
         float dist = (float) (Math.sqrt(dx * dx + dy * dy));
-        int duration = (int) (1000f * dist / 1000f);
+        int duration = (int) (1000f * dist / 600f);
         duration = Math.max(duration, 500);
 
         photo.setRotation(wrapAngle(photo.getRotation()));
