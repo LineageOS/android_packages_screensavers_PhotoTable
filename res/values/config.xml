@@ -32,6 +32,9 @@
   <!-- Maximum number of photos to leave on the table.-->
   <integer name="table_capacity">10</integer>
 
+  <!-- Number of images to discard at a time.-->
+  <integer name="redeal_count">3</integer>
+
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
 
