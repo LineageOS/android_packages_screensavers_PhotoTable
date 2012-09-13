@@ -98,7 +98,7 @@ public class PhotoTable extends FrameLayout {
         mResources = getResources();
         setBackground(mResources.getDrawable(R.drawable.table));
         mInset = mResources.getDimensionPixelSize(R.dimen.photo_inset);
-        mDropPeriod = mResources.getInteger(R.integer.drop_period);
+        mDropPeriod = mResources.getInteger(R.integer.table_drop_period);
         mFastDropPeriod = mResources.getInteger(R.integer.fast_drop);
         mNowDropDelay = mResources.getInteger(R.integer.now_drop);
         mImageRatio = mResources.getInteger(R.integer.image_ratio) / 1000000f;

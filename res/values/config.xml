@@ -15,16 +15,19 @@
 -->
 <resources>
   <!-- Milliseconds between drops. -->
-  <integer name="drop_period">30000</integer>
+  <integer name="table_drop_period">30000</integer>
 
   <!-- Milliseconds to wait before the next fast drop.-->
   <integer name="fast_drop">2000</integer>
+
+  <!-- Milliseconds between drops. -->
+  <integer name="carousel_drop_period">10000</integer>
 
   <!-- Milliseconds to wait before the next immediate drop.-->
   <integer name="now_drop">500</integer>
 
   <!-- Length of flip animation in milliseconds.-->
-  <integer name="flip_duration">500</integer>
+  <integer name="flip_duration">1000</integer>
 
   <!-- Maximum number of photos to leave on the table.-->
   <integer name="table_capacity">10</integer>
