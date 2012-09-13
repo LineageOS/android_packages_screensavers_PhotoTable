@@ -76,6 +76,7 @@ public class PhotoTable extends FrameLayout {
     private final float mThrowSpeed;
     private final boolean mTapToExit;
     private final int mTableCapacity;
+    private final int mRedealCount;
     private final int mInset;
     private final PhotoSourcePlexor mPhotoSource;
     private final Resources mResources;
@@ -107,6 +108,7 @@ public class PhotoTable extends FrameLayout {
         mThrowSpeed = mResources.getDimension(R.dimen.image_throw_speed);
         mThrowRotation = (float) mResources.getInteger(R.integer.image_throw_rotatioan);
         mTableCapacity = mResources.getInteger(R.integer.table_capacity);
+        mRedealCount = mResources.getInteger(R.integer.redeal_count);
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
         mThrowInterpolator = new SoftLandingInterpolator(
                 mResources.getInteger(R.integer.soft_landing_time) / 1000000f,
@@ -394,8 +396,12 @@ public class PhotoTable extends FrameLayout {
                 .withEndAction(new Runnable() {
                         @Override
                             public void run() {
-                            while (mOnTable.size() > mTableCapacity) {
-                                fadeAway(mOnTable.poll(), false);
+                            if (mOnTable.size() > mTableCapacity) {
+                                while (mOnTable.size() > (mTableCapacity - mRedealCount)) {
+                                    fadeAway(mOnTable.poll(), false);
+                                }
+                                // zero delay because we already waited duration ms
+                                scheduleNext(0);
                             }
                         }
                     });
