@@ -15,7 +15,10 @@
  */
 package com.android.dreams.phototable;
 
+import android.content.Context;
 import android.service.dreams.Dream;
+import android.view.LayoutInflater;
+import android.view.ViewGroup;
 
 /**
  * Example interactive screen saver: flick photos onto a table.
@@ -33,8 +36,12 @@ public class PhotoTableDream extends Dream {
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mTable = new PhotoTable(this, null);
-        setContentView(mTable);
+        LayoutInflater inflater =
+                (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        ViewGroup view = (ViewGroup) inflater.inflate(R.layout.table, null);
+        PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
+        table.setDream(this);
+        setContentView(view);
         lightsOut();
     }
 }

@@ -65,7 +65,6 @@ public class PhotoTable extends FrameLayout {
 
     private final Launcher mLauncher;
     private final LinkedList<View> mOnTable;
-    private final Dream mDream;
     private final int mDropPeriod;
     private final int mFastDropPeriod;
     private final int mNowDropDelay;
@@ -82,6 +81,7 @@ public class PhotoTable extends FrameLayout {
     private final Resources mResources;
     private final Interpolator mThrowInterpolator;
     private final Interpolator mDropInterpolator;
+    private Dream mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
     private boolean mIsLandscape;
@@ -93,11 +93,9 @@ public class PhotoTable extends FrameLayout {
     private View mSelected;
     private long mSelectedTime;
 
-    public PhotoTable(Dream dream, AttributeSet as) {
-        super(dream, as);
-        mDream = dream;
+    public PhotoTable(Context context, AttributeSet as) {
+        super(context, as);
         mResources = getResources();
-        setBackground(mResources.getDrawable(R.drawable.table));
         mInset = mResources.getDimensionPixelSize(R.dimen.photo_inset);
         mDropPeriod = mResources.getInteger(R.integer.table_drop_period);
         mFastDropPeriod = mResources.getInteger(R.integer.fast_drop);
@@ -122,6 +120,11 @@ public class PhotoTable extends FrameLayout {
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
         mLauncher = new Launcher(this);
         mStarted = false;
+    }
+
+    
+    public void setDream(Dream dream) {
+        mDream = dream;
     }
 
     public boolean hasSelection() {
@@ -199,7 +202,7 @@ public class PhotoTable extends FrameLayout {
                 dropOnTable(getSelected());
                 clearSelection();
             } else  {
-                if (mTapToExit) {
+                if (mTapToExit && mDream != null) {
                     mDream.finish();
                 }
             }
