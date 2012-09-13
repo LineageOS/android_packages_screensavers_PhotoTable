@@ -18,11 +18,11 @@
    android:layout_width="match_parent"
    android:layout_height="match_parent" >
   <com.android.dreams.phototable.PhotoTable
-     android:background="@+drawable/table"
-     android:id="@+id/table"
-     android:layout_width="match_parent"
-     android:layout_height="match_parent" />
-  <View
+    android:background="@+drawable/table"
+    android:id="@+id/table"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+  <!-- View
      android:background="@+drawable/vignette_br"
      android:layout_gravity="bottom|right"
      android:layout_width="300dp"
@@ -31,5 +31,5 @@
      android:background="@+drawable/vignette_tl"
      android:layout_gravity="top|left"
      android:layout_width="300dp"
-     android:layout_height="300dp" />
+     android:layout_height="300dp" / -->
 </FrameLayout>
