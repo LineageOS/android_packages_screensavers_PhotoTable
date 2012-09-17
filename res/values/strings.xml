@@ -16,7 +16,7 @@
 <resources>
     <string name="app_name">Photo Screensavers</string>
     <string name="table_screensaver_name">Photo Table</string>
-    <string name="flipper_screensaver_name">Slideshow</string>
+    <string name="flipper_screensaver_name">Photo Frame</string>
     <string name="posts_album_name">Photos from Posts</string>
     <string name="unknown_album_name">Unnamed Album</string>
     <string name="stock_photo_album_name">Stock Photos</string>
