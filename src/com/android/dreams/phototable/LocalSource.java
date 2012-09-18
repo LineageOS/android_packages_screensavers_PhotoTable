@@ -32,10 +32,14 @@ import java.util.LinkedList;
 public class LocalSource extends PhotoSource {
     private static final String TAG = "PhotoTable.LocalSource";
 
+    private final String mUnknownAlbumName;
+    private final String mLocalSourceName;
     private int mNextPosition;
 
     public LocalSource(Context context, SharedPreferences settings) {
         super(context, settings);
+        mLocalSourceName = mResources.getString(R.string.local_source_name, "Photos on Device");
+        mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         mSourceName = TAG;
         mNextPosition = -1;
         fillQueue();
@@ -68,6 +72,7 @@ public class LocalSource extends PhotoSource {
                     if (foundAlbums.get(id) == null) {
                         data = new AlbumData();
                         data.id = id;
+                        data.account = mLocalSourceName;
 
                         if (dataIndex >= 0) {
                             data.thumbnailUrl = cursor.getString(dataIndex);
@@ -76,8 +81,7 @@ public class LocalSource extends PhotoSource {
                         if (nameIndex >= 0) {
                             data.title = cursor.getString(nameIndex);
                         } else {
-                            data.title =
-                                    mResources.getString(R.string.unknown_album_name, "Unknown");
+                            data.title = mUnknownAlbumName;
                         }
 
                         log(TAG, data.title + " found");

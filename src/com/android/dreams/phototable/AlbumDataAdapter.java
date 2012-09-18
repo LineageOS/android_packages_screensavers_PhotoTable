@@ -15,8 +15,9 @@
  */
 package com.android.dreams.phototable;
 
-import android.content.SharedPreferences;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.SpannableString;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,7 +25,6 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import java.util.Comparator;
@@ -37,6 +37,7 @@ import java.util.Set;
  */
 public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
     private static final String TAG = "AlbumDataAdapter";
+    private static final boolean DEBUG = false;
 
     public static final String ALBUM_SET = "Enabled Album Set";
 
@@ -58,60 +59,116 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
     }
 
     @Override
-    public View getView (int position, View convertView, ViewGroup parent) {
+    public View getView(int position, View convertView, ViewGroup parent) {
         View item = convertView;
         if (item == null) {
             item = mInflater.inflate(mLayout, parent, false);
-        } else {
         }
         PhotoSource.AlbumData data = getItem(position);
 
         View vCheckBox = item.findViewById(R.id.enabled);
         if (vCheckBox != null && vCheckBox instanceof CheckBox) {
             CheckBox checkBox = (CheckBox) vCheckBox;
-            checkBox.setOnCheckedChangeListener(null);
             checkBox.setChecked(mEnabledAlbums.contains(data.id));
-            checkBox.setText(data.toString());
             checkBox.setTag(R.id.data_payload, data);
-            checkBox.setOnCheckedChangeListener(mListener);
         }
 
+        View vTextView = item.findViewById(R.id.title);
+        if (vTextView != null && vTextView instanceof TextView) {
+            TextView textView = (TextView) vTextView;
+            textView.setText(data.title);
+        }
+
+        item.setOnClickListener(mListener);
         return item;
     }
 
+    public static class AccountComparator implements Comparator<PhotoSource.AlbumData> {
+        private final RecencyComparator recency;
+        public AccountComparator() {
+            recency = new RecencyComparator();
+        }
+
+        @Override
+        public int compare(PhotoSource.AlbumData a, PhotoSource.AlbumData b) {
+            if (a.account == b.account) {
+                return recency.compare(a, b);
+            } else {
+                String typeAString = a.getType();
+                String typeBString = b.getType();
+                int typeA = 1;
+                int typeB = 1;
+
+                if (typeAString.equals(LocalSource.class.getName())) {
+                    typeA = 0;
+                }
+                if (typeBString.equals(LocalSource.class.getName())) {
+                    typeB = 0;
+                }
+
+                if (typeAString.equals(StockSource.class.getName())) {
+                    typeA = 2;
+                }
+                if (typeBString.equals(StockSource.class.getName())) {
+                    typeB = 2;
+                }
+
+                if (typeA == typeB) {
+                    return a.account.compareTo(b.account);
+                } else {
+                    return (int) Math.signum(typeA - typeB);
+                }
+            }
+        }
+    }
+
     public static class RecencyComparator implements Comparator<PhotoSource.AlbumData> {
+        private final TitleComparator title;
+        public RecencyComparator() {
+            title = new TitleComparator();
+        }
+
         @Override
         public int compare(PhotoSource.AlbumData a, PhotoSource.AlbumData b) {
             if (a.updated == b.updated) {
-                return a.title.compareTo(b.title);
+                return title.compare(a, b);
             } else {
                 return (int) Math.signum(b.updated - a.updated);
             }
         }
     }
 
-    public static class AlphabeticalComparator implements Comparator<PhotoSource.AlbumData> {
+    public static class TitleComparator implements Comparator<PhotoSource.AlbumData> {
         @Override
         public int compare(PhotoSource.AlbumData a, PhotoSource.AlbumData b) {
             return a.title.compareTo(b.title);
         }
     }
 
-    private class ItemClickListener implements CompoundButton.OnCheckedChangeListener {
+    private class ItemClickListener implements OnClickListener {
         @Override
-        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-            PhotoSource.AlbumData data =
-                    (PhotoSource.AlbumData) buttonView.getTag(R.id.data_payload);
+        public void onClick(View v) {
+            final View vCheckBox = v.findViewById(R.id.enabled);
+            if (vCheckBox != null && vCheckBox instanceof CheckBox) {
+                final CheckBox checkBox = (CheckBox) vCheckBox;
+                final PhotoSource.AlbumData data =
+                    (PhotoSource.AlbumData) checkBox.getTag(R.id.data_payload);
+                final boolean isChecked = !checkBox.isChecked();
+                checkBox.setChecked(isChecked);
 
-            if (isChecked) {
-                mEnabledAlbums.add(data.id);
+                if (isChecked) {
+                    mEnabledAlbums.add(data.id);
+                } else {
+                    mEnabledAlbums.remove(data.id);
+                }
+
+                AlbumSettings.setEnabledAlbums(mSettings , mEnabledAlbums);
+                if (DEBUG) Log.i(TAG, data.title + " is " +
+                                 (isChecked ? "" : "not") + " enabled");
             } else {
-                mEnabledAlbums.remove(data.id);
+                if (DEBUG) Log.w(TAG, "no checkbox found in settings row!");
             }
-
-            AlbumSettings.setEnabledAlbums(mSettings , mEnabledAlbums);
-
-            Log.i("adaptor", data.title + " is " + (isChecked ? "" : "not") + " enabled");
+            v.setPressed(true);
         }
     }
 }

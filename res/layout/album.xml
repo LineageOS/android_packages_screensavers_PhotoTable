@@ -13,7 +13,34 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal" >
-  <CheckBox android:id="@+id/enabled" />
-</LinearLayout >
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+      android:id="@android:id/widget_frame"
+      android:minHeight="48dp"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:background="?android:attr/selectableItemBackground" >
+
+      <TextView
+          android:id="@+id/title"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginBottom="10dp"
+          android:layout_marginLeft="20dp"
+          android:layout_marginRight="6dp"
+          android:layout_marginTop="10dp"
+          android:layout_centerVertical="true"
+          android:ellipsize="end"
+          android:singleLine="true"
+          android:textAppearance="?android:attr/textAppearanceMedium" />
+
+      <CheckBox
+          android:id="@+id/enabled"
+          android:layout_width="wrap_content"
+          android:layout_height="match_parent"
+          android:layout_alignParentRight="true"
+          android:layout_centerVertical="true"
+          android:layout_toRightOf="@android:id/title"
+          android:layout_marginRight="20dp"
+          android:duplicateParentState="true" />
+
+</RelativeLayout>
