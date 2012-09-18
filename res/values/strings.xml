@@ -18,6 +18,7 @@
     <string name="table_screensaver_name">Photo Table</string>
     <string name="flipper_screensaver_name">Photo Frame</string>
     <string name="posts_album_name">Photos from Posts</string>
+    <string name="uploads_album_name">Instant Uploads</string>
     <string name="unknown_album_name">Unnamed Album</string>
     <string name="stock_photo_album_name">Stock Photos</string>
     <string name="stock_photo_thumbnail_url">https://lh4.googleusercontent.com/-Wd4RWlOXkSo/STt6r8uEJBI/AAAAAAAABJk/2An3QS-aD5c/s256/044_002.jpg</string>

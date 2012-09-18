@@ -46,6 +46,7 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_TITLE = "title";
     private static final String PICASA_THUMB = "thumbnail_url";
     private static final String PICASA_ALBUM_TYPE = "album_type";
+    private static final String PICASA_ALBUM_USER = "user_id";
     private static final String PICASA_ALBUM_UPDATED = "date_updated";
 
     private static final String PICASA_URL_KEY = "content_url";
@@ -54,7 +55,8 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_TYPE_SCREEN_VALUE = "screennail";
     private static final String PICASA_TYPE_THUMB_VALUE = "thumbnail";
     private static final String PICASA_TYPE_IMAGE_VALUE = "image";
-    private static final String PICASA_BUZZ_TYPE = "Buzz";
+    private static final String PICASA_POSTS_TYPE = "Buzz";
+    private static final String PICASA_UPLOAD_TYPE = "InstantUpload";
 
     private final int mMaxPostAblums;
 
@@ -74,37 +76,34 @@ public class PicasaSource extends PhotoSource {
         log(TAG, "finding images");
         LinkedList<ImageData> foundImages = new LinkedList<ImageData>();
         String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
-        StringBuilder selection = new StringBuilder();
         boolean usePosts = false;
+        LinkedList<String> albumIds = new LinkedList<String>();
         for (String id : AlbumSettings.getEnabledAlbums(mSettings)) {
             if (id.startsWith(TAG)) {
                 String[] parts = id.split(":");
-                if (parts.length > 1) {
-                    if (PICASA_BUZZ_TYPE.equals(parts[1])) {
-                        usePosts = true;
-                    } else {
-                        if (selection.length() > 0) {
-                            selection.append(" OR ");
-                        }
-                        log(TAG, "adding on: " + parts[1]);
-                        selection.append(PICASA_ALBUM_ID + " = '" + parts[1] + "'");
-                    }
+                if (parts.length > 2) {
+                    albumIds.addAll(resolveAlbumIds(id));
+                } else {
+                    albumIds.add(parts[1]);
                 }
             }
         }
-        if (usePosts) {
-            for (String id : findPostIds()) {
+
+        StringBuilder selection = new StringBuilder();
+        for (String albumId : albumIds) {
+            if (albumIds.size() < mMaxPostAblums) {
                 if (selection.length() > 0) {
                     selection.append(" OR ");
                 }
-                log(TAG, "adding on: " + id);
-                selection.append(PICASA_ALBUM_ID + " = '" + id + "'");
+                selection.append(PICASA_ALBUM_ID + " = '" + albumId + "'");
+                log(TAG, "adding: " + albumId);
             }
         }
 
         if (selection.length() == 0) {
             return foundImages;
         }
+
         log(TAG, "selection is: " + selection.toString());
 
         Uri.Builder picasaUriBuilder = new Uri.Builder()
@@ -158,17 +157,27 @@ public class PicasaSource extends PhotoSource {
         return foundImages;
     }
 
-    private Collection<String> findPostIds() {
-        LinkedList<String> postIds = new LinkedList<String>();
-        String[] projection = {PICASA_ID, PICASA_ALBUM_TYPE, PICASA_ALBUM_UPDATED};
+    private Collection<String> resolveAlbumIds(String id) {
+        LinkedList<String> albumIds = new LinkedList<String>();
+        log(TAG, "resolving " + id);
+
+        String[] parts = id.split(":");
+        if (parts.length < 3) {
+            return albumIds;
+        }
+
+        String[] projection = {PICASA_ID, PICASA_ALBUM_TYPE, PICASA_ALBUM_UPDATED,
+                               PICASA_ALBUM_USER};
         String order = PICASA_ALBUM_UPDATED + " DESC";
+        String selection = (PICASA_ALBUM_USER + " = '" + parts[2] + "' AND " + 
+                            PICASA_ALBUM_TYPE + " = '" + parts[1] + "'");
         Uri.Builder picasaUriBuilder = new Uri.Builder()
                 .scheme("content")
                 .authority(PICASA_AUTHORITY)
                 .appendPath(PICASA_ALBUM_PATH)
                 .appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_IMAGE_VALUE);
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
-                projection, null, null, order);
+                projection, selection, null, order);
         if (cursor != null) {
             cursor.moveToFirst();
 
@@ -178,16 +187,14 @@ public class PicasaSource extends PhotoSource {
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (postIds.size() < mMaxPostAblums && !cursor.isAfterLast()) {
-                    if (typeIndex >= 0 && PICASA_BUZZ_TYPE.equals(cursor.getString(typeIndex))) {
-                        postIds.add(cursor.getString(idIndex));
-                    }
+                while (!cursor.isAfterLast()) {
+                    albumIds.add(cursor.getString(idIndex));
                     cursor.moveToNext();
                 }
             }
             cursor.close();
         }
-        return postIds;
+        return albumIds;
     }
 
     @Override
@@ -195,7 +202,7 @@ public class PicasaSource extends PhotoSource {
         log(TAG, "finding albums");
         HashMap<String, AlbumData> foundAlbums = new HashMap<String, AlbumData>();
         String[] projection = {PICASA_ID, PICASA_TITLE, PICASA_THUMB, PICASA_ALBUM_TYPE,
-                               PICASA_ALBUM_UPDATED};
+                               PICASA_ALBUM_USER, PICASA_ALBUM_UPDATED};
         Uri.Builder picasaUriBuilder = new Uri.Builder()
                 .scheme("content")
                 .authority(PICASA_AUTHORITY)
@@ -211,26 +218,40 @@ public class PicasaSource extends PhotoSource {
             int titleIndex = cursor.getColumnIndex(PICASA_TITLE);
             int typeIndex = cursor.getColumnIndex(PICASA_ALBUM_TYPE);
             int updatedIndex = cursor.getColumnIndex(PICASA_ALBUM_UPDATED);
+            int userIndex = cursor.getColumnIndex(PICASA_ALBUM_USER);
 
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
                 while (!cursor.isAfterLast()) {
                     String id = TAG + ":" + cursor.getString(idIndex);
-                    boolean isBuzz = (typeIndex >= 0 &&
-                                      PICASA_BUZZ_TYPE.equals(cursor.getString(typeIndex)));
+                    String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
+                    String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
+                    boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
+                    boolean isUpload = (typeIndex >= 0 && PICASA_UPLOAD_TYPE.equals(type));
 
-                    if (isBuzz) {
-                        id = TAG + ":" + PICASA_BUZZ_TYPE;
+                    if (isPosts) {
+                        id = TAG + ":" + PICASA_POSTS_TYPE + ":" + user;
                     }
+
+                    if (isUpload) {
+                        id = TAG + ":" + PICASA_UPLOAD_TYPE + ":" + user;
+                    }
+
+                    String thumbnailUrl = null;
+                    long updated = 0;
                     AlbumData data = foundAlbums.get(id);
                     if (data == null) {
                         data = new AlbumData();
                         data.id = id;
 
-                        if (isBuzz) {
+                        if (isPosts) {
                             data.title =
                                     mResources.getString(R.string.posts_album_name, "Posts");
+                        } else if (isUpload) {
+                            data.title =
+                                    mResources.getString(R.string.uploads_album_name,
+                                                         "Instant Uploads");
                         } else if (titleIndex >= 0) {
                             data.title = cursor.getString(titleIndex);
                         } else {
@@ -239,16 +260,24 @@ public class PicasaSource extends PhotoSource {
                         }
 
                         if (thumbIndex >= 0) {
-                            data.thumbnailUrl = cursor.getString(thumbIndex);
+                            thumbnailUrl = cursor.getString(thumbIndex);
                         }
 
-                        log(TAG, "found " + data.title + "(" + data.id + ")");
+                        if (updatedIndex >= 0) {
+                            updated = cursor.getLong(updatedIndex);
+                        }
+
+                        log(TAG, "found " + data.title + "(" + data.id + ")" +
+                            " of type " + type + " owned by " + user);
                         foundAlbums.put(id, data);
                     }
 
                     if (updatedIndex >= 0) {
-                        data.updated = (long) Math.max(data.updated,
-                                                       cursor.getLong(updatedIndex));
+                        data.updated = (long) Math.max(data.updated, updated);
+                    }
+
+                    if (data.thumbnailUrl == null || data.updated == updated) {
+                        data.thumbnailUrl = thumbnailUrl;
                     }
 
                     cursor.moveToNext();
