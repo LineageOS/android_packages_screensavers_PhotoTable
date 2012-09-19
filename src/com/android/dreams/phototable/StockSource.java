@@ -46,11 +46,15 @@ public class StockSource extends PhotoSource {
     private final LinkedList<ImageData> mImageList;
     private final LinkedList<AlbumData> mAlbumList;
 
+    private final String mStockPhotoName;
+    private final String mStockThumbnail;
     private int mNextPosition;
 
     public StockSource(Context context, SharedPreferences settings) {
         super(context, settings);
         mSourceName = TAG;
+        mStockPhotoName = mResources.getString(R.string.stock_photo_album_name, "Default Photos");
+        mStockThumbnail = mResources.getString(R.string.stock_photo_thumbnail_url);
         mImageList = new LinkedList<ImageData>();
         mAlbumList = new LinkedList<AlbumData>();
         fillQueue();
@@ -61,8 +65,9 @@ public class StockSource extends PhotoSource {
         if (mAlbumList.isEmpty()) {
             AlbumData data = new AlbumData();
             data.id = ALBUM_ID;
-            data.title = mResources.getString(R.string.stock_photo_album_name, "Default Photos");
-            data.thumbnailUrl = mResources.getString(R.string.stock_photo_thumbnail_url);
+            data.account = mStockPhotoName;
+            data.title = mStockPhotoName;
+            data.thumbnailUrl = mStockThumbnail;
             mAlbumList.offer(data);
         }
         log(TAG, "returning a list of albums: " + mAlbumList.size());

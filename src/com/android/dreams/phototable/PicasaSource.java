@@ -38,6 +38,7 @@ public class PicasaSource extends PhotoSource {
 
     private static final String PICASA_PHOTO_PATH = "photos";
     private static final String PICASA_ALBUM_PATH = "albums";
+    private static final String PICASA_USER_PATH = "users";
 
     private static final String PICASA_ID = "_id";
     private static final String PICASA_URL = "content_url";
@@ -48,6 +49,7 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_ALBUM_TYPE = "album_type";
     private static final String PICASA_ALBUM_USER = "user_id";
     private static final String PICASA_ALBUM_UPDATED = "date_updated";
+    private static final String PICASA_ACCOUNT = "account";
 
     private static final String PICASA_URL_KEY = "content_url";
     private static final String PICASA_TYPE_KEY = "type";
@@ -59,6 +61,9 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_UPLOAD_TYPE = "InstantUpload";
 
     private final int mMaxPostAblums;
+    private final String mPostsAlbumName;
+    private final String mUploadsAlbumName;
+    private final String mUnknownAlbumName;
 
     private int mNextPosition;
 
@@ -67,6 +72,9 @@ public class PicasaSource extends PhotoSource {
         mSourceName = TAG;
         mNextPosition = -1;
         mMaxPostAblums = mResources.getInteger(R.integer.max_post_albums);
+        mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
+        mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
+        mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         log(TAG, "mSettings: " + mSettings);
         fillQueue();
     }
@@ -157,6 +165,27 @@ public class PicasaSource extends PhotoSource {
         return foundImages;
     }
 
+    private String resolveAccount(String id) {
+        String displayName = "unknown";
+        String[] projection = {PICASA_ACCOUNT};
+        Uri.Builder picasaUriBuilder = new Uri.Builder()
+                .scheme("content")
+                .authority(PICASA_AUTHORITY)
+                .appendPath(PICASA_USER_PATH)
+                .appendPath(id);
+        Cursor cursor = mResolver.query(picasaUriBuilder.build(),
+                projection, null, null, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+            int accountIndex = cursor.getColumnIndex(PICASA_ACCOUNT);
+            if (accountIndex >= 0) {
+                displayName = cursor.getString(accountIndex);
+            }
+            cursor.close();
+        }
+        return displayName;
+    }
+
     private Collection<String> resolveAlbumIds(String id) {
         LinkedList<String> albumIds = new LinkedList<String>();
         log(TAG, "resolving " + id);
@@ -169,7 +198,7 @@ public class PicasaSource extends PhotoSource {
         String[] projection = {PICASA_ID, PICASA_ALBUM_TYPE, PICASA_ALBUM_UPDATED,
                                PICASA_ALBUM_USER};
         String order = PICASA_ALBUM_UPDATED + " DESC";
-        String selection = (PICASA_ALBUM_USER + " = '" + parts[2] + "' AND " + 
+        String selection = (PICASA_ALBUM_USER + " = '" + parts[2] + "' AND " +
                             PICASA_ALBUM_TYPE + " = '" + parts[1] + "'");
         Uri.Builder picasaUriBuilder = new Uri.Builder()
                 .scheme("content")
@@ -201,6 +230,7 @@ public class PicasaSource extends PhotoSource {
     public Collection<AlbumData> findAlbums() {
         log(TAG, "finding albums");
         HashMap<String, AlbumData> foundAlbums = new HashMap<String, AlbumData>();
+        HashMap<String, String> accounts = new HashMap<String, String>();
         String[] projection = {PICASA_ID, PICASA_TITLE, PICASA_THUMB, PICASA_ALBUM_TYPE,
                                PICASA_ALBUM_USER, PICASA_ALBUM_UPDATED};
         Uri.Builder picasaUriBuilder = new Uri.Builder()
@@ -230,6 +260,12 @@ public class PicasaSource extends PhotoSource {
                     boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
                     boolean isUpload = (typeIndex >= 0 && PICASA_UPLOAD_TYPE.equals(type));
 
+                    String account = accounts.get(user);
+                    if (account == null) {
+                        account = resolveAccount(user);
+                        accounts.put(user, account);
+                    }
+
                     if (isPosts) {
                         id = TAG + ":" + PICASA_POSTS_TYPE + ":" + user;
                     }
@@ -244,19 +280,16 @@ public class PicasaSource extends PhotoSource {
                     if (data == null) {
                         data = new AlbumData();
                         data.id = id;
+                        data.account = account;
 
                         if (isPosts) {
-                            data.title =
-                                    mResources.getString(R.string.posts_album_name, "Posts");
+                            data.title = mPostsAlbumName;
                         } else if (isUpload) {
-                            data.title =
-                                    mResources.getString(R.string.uploads_album_name,
-                                                         "Instant Uploads");
+                            data.title = mUploadsAlbumName;
                         } else if (titleIndex >= 0) {
                             data.title = cursor.getString(titleIndex);
                         } else {
-                            data.title =
-                                    mResources.getString(R.string.unknown_album_name, "Unknown");
+                            data.title = mUnknownAlbumName;
                         }
 
                         if (thumbIndex >= 0) {

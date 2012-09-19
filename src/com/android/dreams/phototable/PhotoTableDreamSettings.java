@@ -18,7 +18,7 @@ package com.android.dreams.phototable;
 import android.content.SharedPreferences;
 import android.app.ListActivity;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 
 import java.util.LinkedList;
 
@@ -30,7 +30,7 @@ public class PhotoTableDreamSettings extends ListActivity {
     public static final String PREFS_NAME = PhotoTableDream.TAG;
 
     private PhotoSourcePlexor mPhotoSource;
-    private ArrayAdapter<PhotoSource.AlbumData> mAdapter;
+    private ListAdapter mAdapter;
     private SharedPreferences mSettings;
 
     @Override
@@ -42,11 +42,11 @@ public class PhotoTableDreamSettings extends ListActivity {
         mSettings = getSharedPreferences(PREFS_NAME, 0);
 
         mPhotoSource = new PhotoSourcePlexor(this, mSettings);
-        mAdapter = new AlbumDataAdapter(this,
+        mAdapter = new SectionedAlbumDataAdapter(this,
                 mSettings,
+                R.layout.header,
                 R.layout.album,
                 new LinkedList<PhotoSource.AlbumData>(mPhotoSource.findAlbums()));
-        mAdapter.sort(new AlbumDataAdapter.RecencyComparator());
         setListAdapter(mAdapter);
     }
 }
