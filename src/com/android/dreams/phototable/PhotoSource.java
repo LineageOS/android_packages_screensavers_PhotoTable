@@ -57,15 +57,17 @@ public abstract class PhotoSource {
         }
     }
 
-    public static class AlbumData {
+    public class AlbumData {
         public String id;
         public String title;
         public String thumbnailUrl;
+        public String account;
         public long updated;
 
-        @Override
-        public String toString() {
-            return title;
+        public String getType() {
+            String type = PhotoSource.this.getClass().getName();
+            log(TAG, "type is " + type);
+            return type;
         }
     }
 
