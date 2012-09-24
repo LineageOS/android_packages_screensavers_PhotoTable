@@ -42,6 +42,6 @@ public class PhotoTableDream extends Dream {
         PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
         table.setDream(this);
         setContentView(view);
-        lightsOut();
+        setFullscreen(true);
     }
 }
