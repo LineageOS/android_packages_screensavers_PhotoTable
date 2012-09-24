@@ -32,7 +32,7 @@ public class FlipperDream extends Dream {
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
-        lightsOut();
+        setFullscreen(true);
         setContentView(R.layout.carousel);
     }
 }
