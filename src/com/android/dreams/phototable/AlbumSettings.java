@@ -29,7 +29,7 @@ public class AlbumSettings {
     public static Set<String> getEnabledAlbums(SharedPreferences settings) {
         Set<String> enabled = settings.getStringSet(ALBUM_SET, null);
         if (enabled == null) {
-            enabled= new HashSet<String>();
+            enabled = new HashSet<String>();
             enabled.add(StockSource.ALBUM_ID);
             setEnabledAlbums(settings, enabled);
         }
@@ -39,6 +39,6 @@ public class AlbumSettings {
     public static void setEnabledAlbums(SharedPreferences settings, Set<String> value) {
         SharedPreferences.Editor editor = settings.edit();
         editor.putStringSet(ALBUM_SET, value);
-        editor.commit();
+        editor.apply();
     }
 }
