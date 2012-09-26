@@ -48,5 +48,6 @@ public class FlipperDreamSettings extends ListActivity {
                 R.layout.album,
                 new LinkedList<PhotoSource.AlbumData>(mPhotoSource.findAlbums()));
         setListAdapter(mAdapter);
+        setContentView(R.layout.settingslist);
     }
 }

@@ -16,9 +16,13 @@
 package com.android.dreams.phototable;
 
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.service.dreams.Dream;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+
+import java.util.Set;
 
 /**
  * Example interactive screen saver: flick photos onto a table.
@@ -38,10 +42,22 @@ public class PhotoTableDream extends Dream {
         super.onAttachedToWindow();
         LayoutInflater inflater =
                 (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        ViewGroup view = (ViewGroup) inflater.inflate(R.layout.table, null);
-        PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
-        table.setDream(this);
-        setContentView(view);
+        SharedPreferences settings = getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0);
+        Set<String> enabledAlbums = AlbumSettings.getEnabledAlbums(settings);
+        if (AlbumSettings.isConfigured(settings)) {
+            ViewGroup view = (ViewGroup) inflater.inflate(R.layout.table, null);
+            PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
+            table.setDream(this);
+            setContentView(view);
+        } else {
+            Resources resources = getResources();
+            ViewGroup view = (ViewGroup) inflater.inflate(R.layout.bummer, null);
+            BummerView bummer = (BummerView) view.findViewById(R.id.bummer);
+            bummer.setAnimationParams(true,
+                                      resources.getInteger(R.integer.table_drop_period),
+                                      resources.getInteger(R.integer.fast_drop));
+            setContentView(view);
+        }
         setFullscreen(true);
     }
 }

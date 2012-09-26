@@ -34,7 +34,6 @@ public class PhotoSourcePlexor extends PhotoSource {
 
     private final PhotoSource mPicasaSource;
     private final PhotoSource mLocalSource;
-    private final PhotoSource mStockSource;
     private SharedPreferences mSettings;
 
     public PhotoSourcePlexor(Context context, SharedPreferences settings) {
@@ -42,7 +41,6 @@ public class PhotoSourcePlexor extends PhotoSource {
         mSourceName = TAG;
         mPicasaSource = new PicasaSource(context, settings);
         mLocalSource = new LocalSource(context, settings);
-        mStockSource = new StockSource(context, settings);
     }
 
     @Override
@@ -55,11 +53,6 @@ public class PhotoSourcePlexor extends PhotoSource {
 
         foundAlbums.addAll(mLocalSource.findAlbums());
         log(TAG, "found " + foundAlbums.size() + " user albums");
-
-        if (foundAlbums.isEmpty()) {
-            foundAlbums.addAll(mStockSource.findAlbums());
-        }
-        log(TAG, "found " + foundAlbums.size() + " albums");
 
         return foundAlbums;
     }
@@ -74,11 +67,6 @@ public class PhotoSourcePlexor extends PhotoSource {
 
         foundImages.addAll(mLocalSource.findImages(howMany));
         log(TAG, "found " + foundImages.size() + " user images");
-
-        if (foundImages.isEmpty()) {
-            foundImages.addAll(mStockSource.findImages(howMany));
-        }
-        log(TAG, "found " + foundImages.size() + " images");
 
         return foundImages;
     }
