@@ -75,7 +75,6 @@ public class PicasaSource extends PhotoSource {
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
         mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
-        log(TAG, "mSettings: " + mSettings);
         fillQueue();
     }
 
