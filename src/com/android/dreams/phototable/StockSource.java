@@ -21,42 +21,30 @@ import android.util.Log;
 
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.ArrayList;
 
 /**
  * Picks a random image from the local store.
  */
-public class StockSource extends PhotoSource {
+public class 
+
+StockSource extends PhotoSource {
     public static final String ALBUM_ID = "com.android.dreams.phototable.StockSource";
     private static final String TAG = "PhotoTable.StockSource";
-    private static final int[] PHOTOS = {R.drawable.photo_044_002,
-        R.drawable.photo_039_002,
-        R.drawable.photo_059_003,
-        R.drawable.photo_070_004,
-        R.drawable.photo_072_001,
-        R.drawable.photo_077_002,
-        R.drawable.photo_098_002,
-        R.drawable.photo_119_003,
-        R.drawable.photo_119_004,
-        R.drawable.photo_126_001,
-        R.drawable.photo_147_002,
-        R.drawable.photo_175_004
-    };
+    private static final int[] PHOTOS = { R.drawable.blank_photo };
 
-    private final LinkedList<ImageData> mImageList;
-    private final LinkedList<AlbumData> mAlbumList;
+    private final ArrayList<ImageData> mImageList;
+    private final ArrayList<AlbumData> mAlbumList;
 
     private final String mStockPhotoName;
-    private final String mStockThumbnail;
     private int mNextPosition;
 
     public StockSource(Context context, SharedPreferences settings) {
-        super(context, settings);
+        super(context, settings, null);
         mSourceName = TAG;
         mStockPhotoName = mResources.getString(R.string.stock_photo_album_name, "Default Photos");
-        mStockThumbnail = mResources.getString(R.string.stock_photo_thumbnail_url);
-        mImageList = new LinkedList<ImageData>();
-        mAlbumList = new LinkedList<AlbumData>();
+        mImageList = new ArrayList<ImageData>(PHOTOS.length);
+        mAlbumList = new ArrayList<AlbumData>(1);
         fillQueue();
     }
 
@@ -67,8 +55,7 @@ public class StockSource extends PhotoSource {
             data.id = ALBUM_ID;
             data.account = mStockPhotoName;
             data.title = mStockPhotoName;
-            data.thumbnailUrl = mStockThumbnail;
-            mAlbumList.offer(data);
+            mAlbumList.add(data);
         }
         log(TAG, "returning a list of albums: " + mAlbumList.size());
         return mAlbumList;
@@ -80,7 +67,7 @@ public class StockSource extends PhotoSource {
             for (int i = 0; i < PHOTOS.length; i++) {
                 ImageData data = new ImageData();
                 data.id = Integer.toString(PHOTOS[i]);
-                mImageList.offer(data);
+                mImageList.add(data);
             }
         }
         return mImageList;
@@ -100,3 +87,4 @@ public class StockSource extends PhotoSource {
         return is;
     }
 }
+

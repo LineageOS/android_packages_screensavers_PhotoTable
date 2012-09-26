@@ -41,7 +41,7 @@ import java.util.Random;
  */
 public abstract class PhotoSource {
     private static final String TAG = "PhotoTable.PhotoSource";
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     // This should be large enough for BitmapFactory to decode the header so
     // that we can mark and reset the input stream to avoid duplicate network i/o
@@ -74,6 +74,7 @@ public abstract class PhotoSource {
     private final LinkedList<ImageData> mImageQueue;
     private final int mMaxQueueSize;
     private final float mMaxCropRatio;
+    private final PhotoSource mFallbackSource;
 
     protected final Context mContext;
     protected final Resources mResources;
@@ -84,6 +85,10 @@ public abstract class PhotoSource {
     protected String mSourceName;
 
     public PhotoSource(Context context, SharedPreferences settings) {
+        this(context, settings, new StockSource(context, settings));
+    }
+
+    public PhotoSource(Context context, SharedPreferences settings, PhotoSource fallbackSource) {
         mSourceName = TAG;
         mContext = context;
         mSettings = settings;
@@ -93,6 +98,7 @@ public abstract class PhotoSource {
         mMaxQueueSize = mResources.getInteger(R.integer.image_queue_size);
         mMaxCropRatio = mResources.getInteger(R.integer.max_crop_ratio) / 1000000f;
         mRNG = new Random();
+        mFallbackSource = fallbackSource;
     }
 
     protected void fillQueue() {
@@ -111,87 +117,97 @@ public abstract class PhotoSource {
         }
 
         if (!mImageQueue.isEmpty()) {
-            ImageData data = mImageQueue.poll();
-            InputStream is = null;
-            try {
-                is = data.getStream();
-                BufferedInputStream bis = new BufferedInputStream(is);
-                bis.mark(BUFFER_SIZE);
+            image = load(mImageQueue.poll(), options, longSide, shortSide);
+        }
 
-                options.inJustDecodeBounds = true;
-                options.inSampleSize = 1;
-                image = BitmapFactory.decodeStream(new BufferedInputStream(bis), null, options);
-                int rawLongSide = Math.max(options.outWidth, options.outHeight);
-                int rawShortSide = Math.min(options.outWidth, options.outHeight);
-                log(TAG, "I see bounds of " +  rawLongSide + ", " + rawShortSide);
+        if (image == null && mFallbackSource != null) {
+            image = load((ImageData) mFallbackSource.findImages(1).toArray()[0],
+                         options, longSide, shortSide);
+        }
 
-                if (rawLongSide != -1 && rawShortSide != -1) {
-                    float insideRatio = Math.max((float) longSide / (float) rawLongSide,
-                                                 (float) shortSide / (float) rawShortSide);
-                    float outsideRatio = Math.max((float) longSide / (float) rawLongSide,
-                                                  (float) shortSide / (float) rawShortSide);
-                    float ratio = (outsideRatio / insideRatio < mMaxCropRatio ?
-                                   outsideRatio : insideRatio);
+        return image;
+    }
 
-                    while (ratio < 0.5) {
-                        options.inSampleSize *= 2;
-                        ratio *= 2;
+    public Bitmap load(ImageData data, BitmapFactory.Options options, int longSide, int shortSide) {
+        log(TAG, "decoding photo resource to " +  longSide + ", " + shortSide);
+        InputStream is = data.getStream();
+
+        Bitmap image = null;
+        try {
+            BufferedInputStream bis = new BufferedInputStream(is);
+            bis.mark(BUFFER_SIZE);
+
+            options.inJustDecodeBounds = true;
+            options.inSampleSize = 1;
+            image = BitmapFactory.decodeStream(new BufferedInputStream(bis), null, options);
+            int rawLongSide = Math.max(options.outWidth, options.outHeight);
+            int rawShortSide = Math.min(options.outWidth, options.outHeight);
+            log(TAG, "I see bounds of " +  rawLongSide + ", " + rawShortSide);
+
+            if (rawLongSide != -1 && rawShortSide != -1) {
+                float insideRatio = Math.max((float) longSide / (float) rawLongSide,
+                                             (float) shortSide / (float) rawShortSide);
+                float outsideRatio = Math.max((float) longSide / (float) rawLongSide,
+                                              (float) shortSide / (float) rawShortSide);
+                float ratio = (outsideRatio / insideRatio < mMaxCropRatio ?
+                               outsideRatio : insideRatio);
+
+                while (ratio < 0.5) {
+                    options.inSampleSize *= 2;
+                    ratio *= 2;
+                }
+
+                log(TAG, "decoding with inSampleSize " +  options.inSampleSize);
+                bis.reset();
+                options.inJustDecodeBounds = false;
+                image = BitmapFactory.decodeStream(bis, null, options);
+                rawLongSide = Math.max(options.outWidth, options.outHeight);
+                rawShortSide = Math.max(options.outWidth, options.outHeight);
+                ratio = Math.max((float) longSide / (float) rawLongSide,
+                                 (float) shortSide / (float) rawShortSide);
+
+                if (Math.abs(ratio - 1.0f) > 0.001) {
+                    log(TAG, "still too big, scaling down by " + ratio);
+                    options.outWidth = (int) (ratio * options.outWidth);
+                    options.outHeight = (int) (ratio * options.outHeight);
+
+                    image = Bitmap.createScaledBitmap(image,
+                                                      options.outWidth, options.outHeight,
+                                                      true);
+                }
+
+                if (data.orientation != 0) {
+                    log(TAG, "rotated by " + data.orientation + ": fixing");
+                    if (data.orientation == 90 || data.orientation == 270) {
+                        int tmp = options.outWidth;
+                        options.outWidth = options.outHeight;
+                        options.outHeight = tmp;
                     }
+                    Matrix matrix = new Matrix();
+                    matrix.setRotate(data.orientation,
+                                     (float) image.getWidth() / 2,
+                                     (float) image.getHeight() / 2);
+                    image = Bitmap.createBitmap(image, 0, 0,
+                                                options.outHeight, options.outWidth,
+                                                matrix, true);
+                }
 
-                    log(TAG, "decoding with inSampleSize " +  options.inSampleSize);
-                    bis.reset();
-                    options.inJustDecodeBounds = false;
-                    image = BitmapFactory.decodeStream(bis, null, options);
-                    rawLongSide = Math.max(options.outWidth, options.outHeight);
-                    rawShortSide = Math.max(options.outWidth, options.outHeight);
-                    ratio = Math.max((float) longSide / (float) rawLongSide,
-                                     (float) shortSide / (float) rawShortSide);
-
-                    if (ratio < 1.0f) {
-                        log(TAG, "still too big, scaling down by " + ratio);
-                        options.outWidth = (int) (ratio * options.outWidth);
-                        options.outHeight = (int) (ratio * options.outHeight);
-
-                        image = Bitmap.createScaledBitmap(image,
-                                                          options.outWidth, options.outHeight,
-                                                          true);
-                    }
-
-                    if (data.orientation != 0) {
-                        log(TAG, "rotated by " + data.orientation + ": fixing");
-                        if (data.orientation == 90 || data.orientation == 270) {
-                            int tmp = options.outWidth;
-                            options.outWidth = options.outHeight;
-                            options.outHeight = tmp;
-                        }
-                        Matrix matrix = new Matrix();
-                        matrix.setRotate(data.orientation,
-                                         (float) image.getWidth() / 2,
-                                         (float) image.getHeight() / 2);
-                        image = Bitmap.createBitmap(image, 0, 0,
-                                                    options.outHeight, options.outWidth,
-                                                    matrix, true);
-                    }
-
-                    log(TAG, "returning bitmap " + image.getWidth() + ", " + image.getHeight());
-                } else {
+                log(TAG, "returning bitmap " + image.getWidth() + ", " + image.getHeight());
+            } else {
                     log(TAG, "decoding failed with no error: " + options.mCancel);
-                }
-            } catch (FileNotFoundException fnf) {
-                log(TAG, "file not found: " + fnf);
-            } catch (IOException ioe) {
-                log(TAG, "i/o exception: " + ioe);
-            } finally {
-                try {
-                    if (is != null) {
-                        is.close();
-                    }
-                } catch (Throwable t) {
-                    log(TAG, "close fail: " + t.toString());
-                }
             }
-        } else {
-            log(TAG, mSourceName + " has no images.");
+        } catch (FileNotFoundException fnf) {
+            log(TAG, "file not found: " + fnf);
+        } catch (IOException ioe) {
+            log(TAG, "i/o exception: " + ioe);
+        } finally {
+            try {
+                if (is != null) {
+                    is.close();
+                }
+            } catch (Throwable t) {
+                log(TAG, "close fail: " + t.toString());
+            }
         }
 
         return image;
@@ -201,7 +217,7 @@ public abstract class PhotoSource {
         mRNG.setSeed(seed);
     }
 
-    protected void log(String tag, String message) {
+    protected static void log(String tag, String message) {
         if (DEBUG) {
             Log.i(tag, message);
         }

@@ -24,13 +24,12 @@ import java.util.Set;
  * Common utilities for album settings.
  */
 public class AlbumSettings {
-    public static final String ALBUM_SET = "Enabled Album Set";
+    public static final String ALBUM_SET = "Enabled Album Set V2";
 
     public static Set<String> getEnabledAlbums(SharedPreferences settings) {
         Set<String> enabled = settings.getStringSet(ALBUM_SET, null);
         if (enabled == null) {
             enabled = new HashSet<String>();
-            enabled.add(StockSource.ALBUM_ID);
             setEnabledAlbums(settings, enabled);
         }
         return enabled;
@@ -40,5 +39,9 @@ public class AlbumSettings {
         SharedPreferences.Editor editor = settings.edit();
         editor.putStringSet(ALBUM_SET, value);
         editor.apply();
+    }
+
+    public static boolean isConfigured(SharedPreferences settings) {
+        return getEnabledAlbums(settings).size() != 0;
     }
 }

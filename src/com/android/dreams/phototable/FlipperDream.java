@@ -15,6 +15,7 @@
  */
 package com.android.dreams.phototable;
 
+import android.content.SharedPreferences;
 import android.service.dreams.Dream;
 
 /**
@@ -32,7 +33,14 @@ public class FlipperDream extends Dream {
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
+
+        SharedPreferences settings = getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0);
+        if (AlbumSettings.isConfigured(settings)) {
+            setContentView(R.layout.carousel);
+        } else {
+            setContentView(R.layout.bummer);
+        }
+
         setFullscreen(true);
-        setContentView(R.layout.carousel);
     }
 }
