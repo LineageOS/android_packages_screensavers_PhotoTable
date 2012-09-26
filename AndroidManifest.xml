@@ -15,8 +15,8 @@
           android:icon="@mipmap/ic_launcher_phototable"
           android:label="@string/table_screensaver_name">
           <meta-data
-             android:name="android.service.dreams.config_activity"
-             android:value="com.android.dreams.phototable/.PhotoTableDreamSettings"/>
+             android:name="android.service.dream"
+             android:resource="@xml/photo_table_dream" />
           <intent-filter>
               <action android:name="android.intent.action.MAIN" />
               <category android:name="android.intent.category.DEFAULT" />
@@ -37,8 +37,8 @@
           android:icon="@mipmap/ic_launcher_photoframe"
           android:label="@string/flipper_screensaver_name">
           <meta-data
-             android:name="android.service.dreams.config_activity"
-             android:value="com.android.dreams.phototable/.FlipperDreamSettings"/>
+             android:name="android.service.dream"
+             android:resource="@xml/photo_flipper_dream" />
           <intent-filter>
               <action android:name="android.intent.action.MAIN" />
               <category android:name="android.intent.category.DEFAULT" />
