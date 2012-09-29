@@ -20,7 +20,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.service.dreams.Dream;
+import android.service.dreams.DreamService;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;

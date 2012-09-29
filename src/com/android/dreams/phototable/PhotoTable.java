@@ -15,7 +15,7 @@
  */
 package com.android.dreams.phototable;
 
-import android.service.dreams.Dream;
+import android.service.dreams.DreamService;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
@@ -81,7 +81,7 @@ public class PhotoTable extends FrameLayout {
     private final Resources mResources;
     private final Interpolator mThrowInterpolator;
     private final Interpolator mDropInterpolator;
-    private Dream mDream;
+    private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
     private boolean mIsLandscape;
@@ -123,7 +123,7 @@ public class PhotoTable extends FrameLayout {
     }
 
     
-    public void setDream(Dream dream) {
+    public void setDream(DreamService dream) {
         mDream = dream;
     }
 
