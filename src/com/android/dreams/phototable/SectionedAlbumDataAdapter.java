@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class SectionedAlbumDataAdapter extends DataSetObserver implements ListAdapter {
     private static final String TAG = "SectionedAlbumDataAdapter";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private final LayoutInflater mInflater;
     private final int mLayout;
