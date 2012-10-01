@@ -18,7 +18,7 @@ package com.android.dreams.phototable;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
-import android.service.dreams.Dream;
+import android.service.dreams.DreamService;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 
@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * Example interactive screen saver: flick photos onto a table.
  */
-public class PhotoTableDream extends Dream {
+public class PhotoTableDream extends DreamService {
     public static final String TAG = "PhotoTableDream";
     private PhotoTable mTable;
 
