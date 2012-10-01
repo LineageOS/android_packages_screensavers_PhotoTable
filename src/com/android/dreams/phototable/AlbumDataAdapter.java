@@ -41,21 +41,18 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
 
     public static final String ALBUM_SET = "Enabled Album Set";
 
-    private final SharedPreferences mSettings;
+    private final AlbumSettings mSettings;
     private final LayoutInflater mInflater;
     private final int mLayout;
     private final ItemClickListener mListener;
 
-    private Set<String> mEnabledAlbums;
-
     public AlbumDataAdapter(Context context, SharedPreferences settings,
             int resource, List<PhotoSource.AlbumData> objects) {
         super(context, resource, objects);
-        mSettings = settings;
+        mSettings = AlbumSettings.getAlbumSettings(settings);
         mLayout = resource;
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mListener = new ItemClickListener();
-        mEnabledAlbums = AlbumSettings.getEnabledAlbums(mSettings);
     }
 
     @Override
@@ -69,7 +66,7 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
         View vCheckBox = item.findViewById(R.id.enabled);
         if (vCheckBox != null && vCheckBox instanceof CheckBox) {
             CheckBox checkBox = (CheckBox) vCheckBox;
-            checkBox.setChecked(mEnabledAlbums.contains(data.id));
+            checkBox.setChecked(mSettings.isAlbumEnabled(data.id));
             checkBox.setTag(R.id.data_payload, data);
         }
 
@@ -155,14 +152,7 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
                     (PhotoSource.AlbumData) checkBox.getTag(R.id.data_payload);
                 final boolean isChecked = !checkBox.isChecked();
                 checkBox.setChecked(isChecked);
-
-                if (isChecked) {
-                    mEnabledAlbums.add(data.id);
-                } else {
-                    mEnabledAlbums.remove(data.id);
-                }
-
-                AlbumSettings.setEnabledAlbums(mSettings , mEnabledAlbums);
+                mSettings.setAlbumEnabled(data.id, isChecked);
                 if (DEBUG) Log.i(TAG, data.title + " is " +
                                  (isChecked ? "" : "not") + " enabled");
             } else {

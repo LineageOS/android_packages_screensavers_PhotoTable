@@ -79,7 +79,7 @@ public abstract class PhotoSource {
     protected final Context mContext;
     protected final Resources mResources;
     protected final Random mRNG;
-    protected final SharedPreferences mSettings;
+    protected final AlbumSettings mSettings;
     protected final ContentResolver mResolver;
 
     protected String mSourceName;
@@ -91,7 +91,7 @@ public abstract class PhotoSource {
     public PhotoSource(Context context, SharedPreferences settings, PhotoSource fallbackSource) {
         mSourceName = TAG;
         mContext = context;
-        mSettings = settings;
+        mSettings = AlbumSettings.getAlbumSettings(settings);
         mResolver = mContext.getContentResolver();
         mResources = context.getResources();
         mImageQueue = new LinkedList<ImageData>();

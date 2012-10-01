@@ -17,6 +17,7 @@ package com.android.dreams.phototable;
 
 import android.content.SharedPreferences;
 import android.app.ListActivity;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.widget.ListAdapter;
 
@@ -37,17 +38,25 @@ public class FlipperDreamSettings extends ListActivity {
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
 
-        //setContentView(R.layout.custom_list_activity_view);
-
         mSettings = getSharedPreferences(PREFS_NAME, 0);
-
         mPhotoSource = new PhotoSourcePlexor(this, mSettings);
-        mAdapter = new SectionedAlbumDataAdapter(this,
-                mSettings,
-                R.layout.header,
-                R.layout.album,
-                new LinkedList<PhotoSource.AlbumData>(mPhotoSource.findAlbums()));
-        setListAdapter(mAdapter);
         setContentView(R.layout.settingslist);
+
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            public Void doInBackground(Void... unused) {
+                mAdapter = new SectionedAlbumDataAdapter(FlipperDreamSettings.this,
+                        mSettings,
+                        R.layout.header,
+                        R.layout.album,
+                        new LinkedList<PhotoSource.AlbumData>(mPhotoSource.findAlbums()));
+                return null;
+            }
+
+           @Override
+           public void onPostExecute(Void unused) {
+               setListAdapter(mAdapter);
+           }
+        }.execute();
     }
 }

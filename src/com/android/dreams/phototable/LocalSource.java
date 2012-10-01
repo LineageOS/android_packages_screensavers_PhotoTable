@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * Loads images from the local store.
@@ -34,6 +35,7 @@ public class LocalSource extends PhotoSource {
 
     private final String mUnknownAlbumName;
     private final String mLocalSourceName;
+    private Set<String> mFoundAlbumIds;
     private int mNextPosition;
 
     public LocalSource(Context context, SharedPreferences settings) {
@@ -43,6 +45,13 @@ public class LocalSource extends PhotoSource {
         mSourceName = TAG;
         mNextPosition = -1;
         fillQueue();
+    }
+
+    private Set<String> getFoundAlbums() {
+        if (mFoundAlbumIds == null) {
+            findAlbums();
+        }
+        return mFoundAlbumIds;
     }
 
     @Override
@@ -100,6 +109,7 @@ public class LocalSource extends PhotoSource {
 
         }
         log(TAG, "found " + foundAlbums.size() + " items.");
+        mFoundAlbumIds = foundAlbums.keySet();
         return foundAlbums.values();
     }
 
@@ -111,8 +121,8 @@ public class LocalSource extends PhotoSource {
         String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.ORIENTATION,
                 MediaStore.Images.Media.BUCKET_ID, MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
         String selection = "";
-        for (String id : AlbumSettings.getEnabledAlbums(mSettings)) {
-            if (id.startsWith(TAG)) {
+        for (String id : getFoundAlbums()) {
+            if (mSettings.isAlbumEnabled(id)) {
                 String[] parts = id.split(":");
                 if (parts.length > 1) {
                     if (selection.length() > 0) {
