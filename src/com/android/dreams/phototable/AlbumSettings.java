@@ -17,6 +17,7 @@ package com.android.dreams.phototable;
 
 import android.content.SharedPreferences;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,22 +27,72 @@ import java.util.Set;
 public class AlbumSettings {
     public static final String ALBUM_SET = "Enabled Album Set V2";
 
-    public static Set<String> getEnabledAlbums(SharedPreferences settings) {
-        Set<String> enabled = settings.getStringSet(ALBUM_SET, null);
-        if (enabled == null) {
-            enabled = new HashSet<String>();
-            setEnabledAlbums(settings, enabled);
+    private static HashMap<SharedPreferences, AlbumSettings> singletons;
+
+    private final SharedPreferences mSettings;
+    private final HashSet<String> mEnabledAlbums;
+
+    public static AlbumSettings getAlbumSettings(SharedPreferences settings) {
+        if (singletons == null) {
+            singletons = new HashMap<SharedPreferences, AlbumSettings>();
         }
-        return enabled;
+        if (!singletons.containsKey(settings)) {
+            singletons.put(settings, new AlbumSettings(settings));
+        }
+        return singletons.get(settings);
     }
 
-    public static void setEnabledAlbums(SharedPreferences settings, Set<String> value) {
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putStringSet(ALBUM_SET, value);
-        editor.apply();
+    public void readEnabledAlbums() {
+        synchronized (mEnabledAlbums) {
+            readEnabledAlbumsLocked();
+        }
     }
 
-    public static boolean isConfigured(SharedPreferences settings) {
-        return getEnabledAlbums(settings).size() != 0;
+    public boolean isAlbumEnabled(String albumId) {
+        synchronized (mEnabledAlbums) {
+            boolean isEnabled = mEnabledAlbums.contains(albumId);
+            return mEnabledAlbums.contains(albumId);
+        }
+    }
+
+    public void setAlbumEnabled(String albumId, boolean enabled) {
+        if (isAlbumEnabled(albumId) != enabled) {
+            synchronized (mEnabledAlbums) {
+                readEnabledAlbumsLocked();
+                if (enabled) {
+                    mEnabledAlbums.add(albumId);
+                } else {
+                    mEnabledAlbums.remove(albumId);
+                }
+                writeEnabledAlbumsLocked();
+            }
+        }
+    }
+
+    public  boolean isConfigured() {
+        synchronized (mEnabledAlbums) {
+            return mEnabledAlbums.size() != 0;
+        }
+    }
+
+    private AlbumSettings(SharedPreferences settings) {
+        mSettings = settings;
+        mEnabledAlbums = new HashSet<String>();
+        readEnabledAlbums();
+    }
+
+    private void readEnabledAlbumsLocked() {
+        Set<String> enabledAlbums = mSettings.getStringSet(ALBUM_SET, null);
+        mEnabledAlbums.clear();
+        if (enabledAlbums != null) {
+            mEnabledAlbums.addAll(enabledAlbums);
+        }
+    }
+
+    private void writeEnabledAlbumsLocked() {
+        SharedPreferences.Editor editor = mSettings.edit();
+        // Give SharedSettings a copy, so that we are free to manipulate ours.
+        editor.putStringSet(ALBUM_SET, new HashSet<String>(mEnabledAlbums));
+        editor.commit();
     }
 }

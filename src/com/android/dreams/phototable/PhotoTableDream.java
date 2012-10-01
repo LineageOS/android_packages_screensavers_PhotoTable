@@ -42,9 +42,9 @@ public class PhotoTableDream extends DreamService {
         super.onAttachedToWindow();
         LayoutInflater inflater =
                 (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        SharedPreferences settings = getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0);
-        Set<String> enabledAlbums = AlbumSettings.getEnabledAlbums(settings);
-        if (AlbumSettings.isConfigured(settings)) {
+        AlbumSettings settings = AlbumSettings.getAlbumSettings(
+                getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
+        if (settings.isConfigured()) {
             ViewGroup view = (ViewGroup) inflater.inflate(R.layout.table, null);
             PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
             table.setDream(this);

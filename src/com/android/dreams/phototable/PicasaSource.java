@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Set;
 
 /**
  * Loads images from Picasa.
@@ -65,6 +66,7 @@ public class PicasaSource extends PhotoSource {
     private final String mUploadsAlbumName;
     private final String mUnknownAlbumName;
 
+    private Set<String> mFoundAlbumIds;
     private int mNextPosition;
 
     public PicasaSource(Context context, SharedPreferences settings) {
@@ -85,8 +87,8 @@ public class PicasaSource extends PhotoSource {
         String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
         boolean usePosts = false;
         LinkedList<String> albumIds = new LinkedList<String>();
-        for (String id : AlbumSettings.getEnabledAlbums(mSettings)) {
-            if (id.startsWith(TAG)) {
+        for (String id : getFoundAlbums()) {
+            if (mSettings.isAlbumEnabled(id)) {
                 String[] parts = id.split(":");
                 if (parts.length > 2) {
                     albumIds.addAll(resolveAlbumIds(id));
@@ -225,6 +227,13 @@ public class PicasaSource extends PhotoSource {
         return albumIds;
     }
 
+    private Set<String> getFoundAlbums() {
+        if (mFoundAlbumIds == null) {
+            findAlbums();
+        }
+        return mFoundAlbumIds;
+    }
+
     @Override
     public Collection<AlbumData> findAlbums() {
         log(TAG, "finding albums");
@@ -319,6 +328,7 @@ public class PicasaSource extends PhotoSource {
 
         }
         log(TAG, "found " + foundAlbums.size() + " items.");
+        mFoundAlbumIds = foundAlbums.keySet();
         return foundAlbums.values();
     }
 
