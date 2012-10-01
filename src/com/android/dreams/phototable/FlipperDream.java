@@ -33,9 +33,9 @@ public class FlipperDream extends DreamService {
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
-
-        SharedPreferences settings = getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0);
-        if (AlbumSettings.isConfigured(settings)) {
+        AlbumSettings settings = AlbumSettings.getAlbumSettings(
+                getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0));
+        if (settings.isConfigured()) {
             setContentView(R.layout.carousel);
         } else {
             setContentView(R.layout.bummer);
