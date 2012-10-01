@@ -16,12 +16,12 @@
 package com.android.dreams.phototable;
 
 import android.content.SharedPreferences;
-import android.service.dreams.Dream;
+import android.service.dreams.DreamService;
 
 /**
  * Example interactive screen saver: single photo with flipping.
  */
-public class FlipperDream extends Dream {
+public class FlipperDream extends DreamService {
     public static final String TAG = "FlipperDream";
 
     @Override
