@@ -41,7 +41,7 @@ import java.util.Random;
  */
 public abstract class PhotoSource {
     private static final String TAG = "PhotoTable.PhotoSource";
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     // This should be large enough for BitmapFactory to decode the header so
     // that we can mark and reset the input stream to avoid duplicate network i/o
