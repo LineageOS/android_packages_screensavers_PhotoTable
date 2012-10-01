@@ -18,9 +18,8 @@
              android:name="android.service.dream"
              android:resource="@xml/photo_table_dream" />
           <intent-filter>
-              <action android:name="android.intent.action.MAIN" />
+              <action android:name="android.service.dreams.DreamService" />
               <category android:name="android.intent.category.DEFAULT" />
-              <category android:name="android.intent.category.DREAM" />
           </intent-filter>
       </service>
       <activity android:name="PhotoTableDreamSettings"
@@ -40,9 +39,8 @@
              android:name="android.service.dream"
              android:resource="@xml/photo_flipper_dream" />
           <intent-filter>
-              <action android:name="android.intent.action.MAIN" />
+              <action android:name="android.service.dreams.DreamService" />
               <category android:name="android.intent.category.DEFAULT" />
-              <category android:name="android.intent.category.DREAM" />
           </intent-filter>
       </service>
       <activity android:name="FlipperDreamSettings"
