@@ -76,5 +76,8 @@
 
   <!-- Drop animation exponent. -->
   <integer name="drop_deceleration_exponent">4</integer>
+
+  <!-- Number of unloadable images to skip before giving up. -->
+  <integer name="bad_image_skip_limit">10</integer>
 </resources>
 

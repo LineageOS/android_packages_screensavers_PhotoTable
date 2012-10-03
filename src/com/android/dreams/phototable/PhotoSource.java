@@ -74,6 +74,7 @@ public abstract class PhotoSource {
     private final LinkedList<ImageData> mImageQueue;
     private final int mMaxQueueSize;
     private final float mMaxCropRatio;
+    private final int mBadImageSkipLimit;
     private final PhotoSource mFallbackSource;
 
     protected final Context mContext;
@@ -97,6 +98,7 @@ public abstract class PhotoSource {
         mImageQueue = new LinkedList<ImageData>();
         mMaxQueueSize = mResources.getInteger(R.integer.image_queue_size);
         mMaxCropRatio = mResources.getInteger(R.integer.max_crop_ratio) / 1000000f;
+        mBadImageSkipLimit = mResources.getInteger(R.integer.bad_image_skip_limit);
         mRNG = new Random();
         mFallbackSource = fallbackSource;
     }
@@ -111,18 +113,23 @@ public abstract class PhotoSource {
     public Bitmap next(BitmapFactory.Options options, int longSide, int shortSide) {
         log(TAG, "decoding a picasa resource to " +  longSide + ", " + shortSide);
         Bitmap image = null;
+        int tries = 0;
 
-        if (mImageQueue.isEmpty()) {
-            fillQueue();
-        }
+        while (image == null && tries < mBadImageSkipLimit) {
+            if (mImageQueue.isEmpty()) {
+                fillQueue();
+            }
 
-        if (!mImageQueue.isEmpty()) {
-            image = load(mImageQueue.poll(), options, longSide, shortSide);
+            if (!mImageQueue.isEmpty()) {
+                image = load(mImageQueue.poll(), options, longSide, shortSide);
+            }
+
+            tries++;
         }
 
         if (image == null && mFallbackSource != null) {
             image = load((ImageData) mFallbackSource.findImages(1).toArray()[0],
-                         options, longSide, shortSide);
+                    options, longSide, shortSide);
         }
 
         return image;
