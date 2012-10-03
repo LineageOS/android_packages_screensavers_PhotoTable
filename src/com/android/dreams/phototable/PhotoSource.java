@@ -163,38 +163,46 @@ public abstract class PhotoSource {
                 image = BitmapFactory.decodeStream(bis, null, options);
                 rawLongSide = Math.max(options.outWidth, options.outHeight);
                 rawShortSide = Math.max(options.outWidth, options.outHeight);
-                ratio = Math.max((float) longSide / (float) rawLongSide,
-                                 (float) shortSide / (float) rawShortSide);
+                if (image != null && rawLongSide != -1 && rawShortSide != -1) {
+                    ratio = Math.max((float) longSide / (float) rawLongSide,
+                            (float) shortSide / (float) rawShortSide);
 
-                if (Math.abs(ratio - 1.0f) > 0.001) {
-                    log(TAG, "still too big, scaling down by " + ratio);
-                    options.outWidth = (int) (ratio * options.outWidth);
-                    options.outHeight = (int) (ratio * options.outHeight);
+                    if (Math.abs(ratio - 1.0f) > 0.001) {
+                        log(TAG, "still too big, scaling down by " + ratio);
+                        options.outWidth = (int) (ratio * options.outWidth);
+                        options.outHeight = (int) (ratio * options.outHeight);
 
-                    image = Bitmap.createScaledBitmap(image,
-                                                      options.outWidth, options.outHeight,
-                                                      true);
-                }
-
-                if (data.orientation != 0) {
-                    log(TAG, "rotated by " + data.orientation + ": fixing");
-                    if (data.orientation == 90 || data.orientation == 270) {
-                        int tmp = options.outWidth;
-                        options.outWidth = options.outHeight;
-                        options.outHeight = tmp;
+                        image = Bitmap.createScaledBitmap(image,
+                                options.outWidth, options.outHeight,
+                                true);
                     }
-                    Matrix matrix = new Matrix();
-                    matrix.setRotate(data.orientation,
-                                     (float) image.getWidth() / 2,
-                                     (float) image.getHeight() / 2);
-                    image = Bitmap.createBitmap(image, 0, 0,
-                                                options.outHeight, options.outWidth,
-                                                matrix, true);
-                }
 
-                log(TAG, "returning bitmap " + image.getWidth() + ", " + image.getHeight());
+                    if (data.orientation != 0) {
+                        log(TAG, "rotated by " + data.orientation + ": fixing");
+                        if (data.orientation == 90 || data.orientation == 270) {
+                            int tmp = options.outWidth;
+                            options.outWidth = options.outHeight;
+                            options.outHeight = tmp;
+                        }
+                        Matrix matrix = new Matrix();
+                        matrix.setRotate(data.orientation,
+                                         (float) image.getWidth() / 2,
+                                         (float) image.getHeight() / 2);
+                        image = Bitmap.createBitmap(image, 0, 0,
+                                                    options.outHeight, options.outWidth,
+                                                    matrix, true);
+                    }
+
+                    log(TAG, "returning bitmap " + image.getWidth() + ", " + image.getHeight());
+                } else {
+                    image = null;
+                }
             } else {
-                    log(TAG, "decoding failed with no error: " + options.mCancel);
+                image = null;
+            }
+            if (image == null) {
+                log(TAG, "Stream decoding failed with no error" +
+                        (options.mCancel ? " due to cancelation." : "."));
             }
         } catch (FileNotFoundException fnf) {
             log(TAG, "file not found: " + fnf);
