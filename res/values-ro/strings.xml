@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="6441943862284988546">"Screensavere cu fotografii"</string>
     <string name="table_screensaver_name" msgid="1150228032617397055">"Grilă de fotografii"</string>
-    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Fotografie unică"</string>
+    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Cadru cu o fotografie"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Fotografii din postări"</string>
     <string name="uploads_album_name" msgid="4057519060978630370">"Încărcări instant"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"Album fără nume"</string>
