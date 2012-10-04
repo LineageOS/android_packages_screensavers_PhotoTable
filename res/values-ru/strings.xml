@@ -24,5 +24,5 @@
     <string name="unknown_album_name" msgid="2135521368192091267">"Альбом без названия"</string>
     <string name="stock_photo_album_name" msgid="3150527596227525460">"Снимки из фотобанков"</string>
     <string name="local_source_name" msgid="6487253091085518505">"Фото на устройстве"</string>
-    <string name="need_to_configure" msgid="1269102638159389032">"Фото не выбраны"</string>
+    <string name="need_to_configure" msgid="1269102638159389032">"Ничего не выбрано"</string>
 </resources>
