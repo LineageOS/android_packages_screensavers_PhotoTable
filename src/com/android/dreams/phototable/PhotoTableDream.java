@@ -32,8 +32,8 @@ public class PhotoTableDream extends DreamService {
     private PhotoTable mTable;
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onDreamingStarted() {
+        super.onDreamingStarted();
         setInteractive(true);
     }
 
