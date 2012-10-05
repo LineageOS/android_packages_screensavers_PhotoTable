@@ -25,8 +25,8 @@ public class FlipperDream extends DreamService {
     public static final String TAG = "FlipperDream";
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onDreamingStarted() {
+        super.onDreamingStarted();
         setInteractive(false);
     }
 
