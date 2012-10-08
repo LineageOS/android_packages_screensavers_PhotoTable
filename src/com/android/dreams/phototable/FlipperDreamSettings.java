@@ -19,6 +19,7 @@ import android.content.SharedPreferences;
 import android.app.ListActivity;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ListAdapter;
 
 import java.util.LinkedList;
@@ -56,6 +57,9 @@ public class FlipperDreamSettings extends ListActivity {
            @Override
            public void onPostExecute(Void unused) {
                setListAdapter(mAdapter);
+               if (mAdapter.getCount() == 0) {
+                   findViewById(android.R.id.empty).setVisibility(View.GONE);
+               }
            }
         }.execute();
     }
