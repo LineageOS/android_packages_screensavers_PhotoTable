@@ -17,6 +17,7 @@ package com.android.dreams.phototable;
 
 import android.content.SharedPreferences;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -64,6 +65,16 @@ public class AlbumSettings {
                 } else {
                     mEnabledAlbums.remove(albumId);
                 }
+                writeEnabledAlbumsLocked();
+            }
+        }
+    }
+
+    public void pruneObsoleteSettings(Collection<String> validAlbums) {
+        if (!validAlbums.containsAll(mEnabledAlbums)) {
+            synchronized (mEnabledAlbums) {
+                readEnabledAlbumsLocked();
+                mEnabledAlbums.retainAll(validAlbums);
                 writeEnabledAlbumsLocked();
             }
         }
