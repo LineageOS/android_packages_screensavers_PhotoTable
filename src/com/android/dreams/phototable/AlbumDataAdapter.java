@@ -53,6 +53,12 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
         mLayout = resource;
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mListener = new ItemClickListener();
+
+        HashSet<String> validAlbumIds = new HashSet<String>(objects.size());
+        for (PhotoSource.AlbumData albumData: objects) {
+            validAlbumIds.add(albumData.id);
+        }
+        mSettings.pruneObsoleteSettings(validAlbumIds);
     }
 
     @Override

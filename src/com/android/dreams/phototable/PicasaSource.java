@@ -19,11 +19,13 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.util.Log;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
@@ -98,22 +100,30 @@ public class PicasaSource extends PhotoSource {
             }
         }
 
+        if (albumIds.size() > mMaxPostAblums) {
+            Collections.shuffle(albumIds);
+        }
+
         StringBuilder selection = new StringBuilder();
+        int albumIdx = 0;
         for (String albumId : albumIds) {
-            if (albumIds.size() < mMaxPostAblums) {
+            if (albumIdx < mMaxPostAblums) {
                 if (selection.length() > 0) {
                     selection.append(" OR ");
                 }
-                selection.append(PICASA_ALBUM_ID + " = '" + albumId + "'");
                 log(TAG, "adding: " + albumId);
+                selection.append(PICASA_ALBUM_ID + " = '" + albumId + "'");
+            } else {
+                log(TAG, "too many albums, dropping: " + albumId);
             }
+            albumIdx++;
         }
 
         if (selection.length() == 0) {
             return foundImages;
         }
 
-        log(TAG, "selection is: " + selection.toString());
+        log(TAG, "selection is (" + selection.length() + "): " + selection.toString());
 
         Uri.Builder picasaUriBuilder = new Uri.Builder()
                 .scheme("content")
@@ -161,6 +171,8 @@ public class PicasaSource extends PhotoSource {
             }
 
             cursor.close();
+        } else {
+            Log.w(TAG, "received a null cursor in findImages()");
         }
         log(TAG, "found " + foundImages.size() + " items.");
         return foundImages;
@@ -183,6 +195,8 @@ public class PicasaSource extends PhotoSource {
                 displayName = cursor.getString(accountIndex);
             }
             cursor.close();
+        } else {
+            Log.w(TAG, "received a null cursor in resolveAccount()");
         }
         return displayName;
     }
@@ -209,6 +223,7 @@ public class PicasaSource extends PhotoSource {
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
                 projection, selection, null, order);
         if (cursor != null) {
+            log(TAG, " " + id + " resolved to " + cursor.getCount() + " albums");
             cursor.moveToFirst();
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
@@ -223,6 +238,8 @@ public class PicasaSource extends PhotoSource {
                 }
             }
             cursor.close();
+        } else {
+            Log.w(TAG, "received a null cursor in resolveAlbumIds()");
         }
         return albumIds;
     }
@@ -275,10 +292,12 @@ public class PicasaSource extends PhotoSource {
                     }
 
                     if (isPosts) {
+                        log(TAG, "replacing " + id + " with " + PICASA_POSTS_TYPE);
                         id = TAG + ":" + PICASA_POSTS_TYPE + ":" + user;
                     }
 
                     if (isUpload) {
+                        log(TAG, "replacing " + id + " with " + PICASA_UPLOAD_TYPE);
                         id = TAG + ":" + PICASA_UPLOAD_TYPE + ":" + user;
                     }
 
@@ -300,22 +319,20 @@ public class PicasaSource extends PhotoSource {
                             data.title = mUnknownAlbumName;
                         }
 
-                        if (thumbIndex >= 0) {
-                            thumbnailUrl = cursor.getString(thumbIndex);
-                        }
-
-                        if (updatedIndex >= 0) {
-                            updated = cursor.getLong(updatedIndex);
-                        }
-
                         log(TAG, "found " + data.title + "(" + data.id + ")" +
-                            " of type " + type + " owned by " + user);
+                                " of type " + type + " owned by " + user);
                         foundAlbums.put(id, data);
                     }
 
                     if (updatedIndex >= 0) {
-                        data.updated = (long) Math.max(data.updated, updated);
+                        updated = cursor.getLong(updatedIndex);
                     }
+
+                    if (thumbIndex >= 0) {
+                        thumbnailUrl = cursor.getString(thumbIndex);
+                    }
+
+                    data.updated = (long) Math.max(data.updated, updated);
 
                     if (data.thumbnailUrl == null || data.updated == updated) {
                         data.thumbnailUrl = thumbnailUrl;
@@ -326,6 +343,8 @@ public class PicasaSource extends PhotoSource {
             }
             cursor.close();
 
+        } else {
+            Log.w(TAG, "received a null cursor in findAlbums()");
         }
         log(TAG, "found " + foundAlbums.size() + " items.");
         mFoundAlbumIds = foundAlbums.keySet();
