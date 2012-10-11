@@ -15,10 +15,10 @@
 -->
 <resources>
   <!-- Milliseconds between drops. -->
-  <integer name="table_drop_period">30000</integer>
+  <integer name="table_drop_period">45000</integer>
 
   <!-- Milliseconds to wait before the next fast drop.-->
-  <integer name="fast_drop">2000</integer>
+  <integer name="fast_drop">4000</integer>
 
   <!-- Milliseconds between drops. -->
   <integer name="carousel_drop_period">10000</integer>
