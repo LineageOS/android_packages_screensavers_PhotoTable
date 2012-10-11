@@ -14,8 +14,11 @@
      limitations under the License.
 -->
 <resources>
+  <!-- Milliseconds between drops. -->
+  <integer name="table_drop_period">90000</integer>
+
   <!-- Milliseconds to wait before the next fast drop.-->
-  <integer name="fast_drop">4000</integer>
+  <integer name="fast_drop">10000</integer>
 
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
