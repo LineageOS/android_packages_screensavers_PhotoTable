@@ -113,15 +113,19 @@ public abstract class PhotoSource {
     public Bitmap next(BitmapFactory.Options options, int longSide, int shortSide) {
         log(TAG, "decoding a picasa resource to " +  longSide + ", " + shortSide);
         Bitmap image = null;
+        ImageData imageData = null;
         int tries = 0;
 
         while (image == null && tries < mBadImageSkipLimit) {
-            if (mImageQueue.isEmpty()) {
-                fillQueue();
-            }
+            synchronized(mImageQueue) {
+                if (mImageQueue.isEmpty()) {
+                    fillQueue();
+                }
 
+                imageData = mImageQueue.poll();
+            }
             if (!mImageQueue.isEmpty()) {
-                image = load(mImageQueue.poll(), options, longSide, shortSide);
+                image = load(imageData, options, longSide, shortSide);
             }
 
             tries++;
@@ -211,10 +215,15 @@ public abstract class PhotoSource {
                 log(TAG, "Stream decoding failed with no error" +
                         (options.mCancel ? " due to cancelation." : "."));
             }
+        } catch (OutOfMemoryError ome) {
+            log(TAG, "OUT OF MEMORY: " + ome);
+            image = null;
         } catch (FileNotFoundException fnf) {
             log(TAG, "file not found: " + fnf);
+            image = null;
         } catch (IOException ioe) {
             log(TAG, "i/o exception: " + ioe);
+            image = null;
         } finally {
             try {
                 if (is != null) {
