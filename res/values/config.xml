@@ -79,5 +79,8 @@
 
   <!-- Number of unloadable images to skip before giving up. -->
   <integer name="bad_image_skip_limit">10</integer>
+
+  <!-- Size of image recycling pool when on metered data.  -->
+  <integer name="recycle_image_pool_size">20</integer>
 </resources>
 
