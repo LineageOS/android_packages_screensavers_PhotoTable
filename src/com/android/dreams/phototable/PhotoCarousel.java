@@ -232,7 +232,6 @@ public class PhotoCarousel extends FrameLayout {
             mPanel[1] = findViewById(R.id.back);
 
             new PhotoLoadTask(mPanel[0]).execute();
-            new PhotoLoadTask(mPanel[1]).execute();
 
             scheduleNext(mDropPeriod);
         }
