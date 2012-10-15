@@ -18,6 +18,7 @@ package com.android.dreams.phototable;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.util.Log;
 
@@ -67,6 +68,9 @@ public class PicasaSource extends PhotoSource {
     private final String mPostsAlbumName;
     private final String mUploadsAlbumName;
     private final String mUnknownAlbumName;
+    private final LinkedList<ImageData> mRecycleBin;
+    private final ConnectivityManager mConnectivityManager;
+    private final int mMaxRecycleSize;
 
     private Set<String> mFoundAlbumIds;
     private int mNextPosition;
@@ -79,6 +83,10 @@ public class PicasaSource extends PhotoSource {
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
         mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
+        mMaxRecycleSize = mResources.getInteger(R.integer.recycle_image_pool_size);
+        mConnectivityManager =
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        mRecycleBin = new LinkedList<ImageData>();
         fillQueue();
     }
 
@@ -86,6 +94,16 @@ public class PicasaSource extends PhotoSource {
     protected Collection<ImageData> findImages(int howMany) {
         log(TAG, "finding images");
         LinkedList<ImageData> foundImages = new LinkedList<ImageData>();
+        if (mConnectivityManager.isActiveNetworkMetered()) {
+            howMany = Math.min(howMany, mMaxRecycleSize);
+            log(TAG, "METERED: " + howMany);
+            if (!mRecycleBin.isEmpty()) {
+                foundImages.addAll(mRecycleBin);
+                log(TAG, "recycled " + foundImages.size() + " items.");
+                return foundImages;
+            }
+        }
+
         String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
         boolean usePosts = false;
         LinkedList<String> albumIds = new LinkedList<String>();
@@ -359,8 +377,12 @@ public class PicasaSource extends PhotoSource {
                     .scheme("content")
                     .authority(PICASA_AUTHORITY)
                     .appendPath(PICASA_PHOTO_PATH)
-                    .appendPath(data.id)
-                    .appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_FULL_VALUE);
+                    .appendPath(data.id);
+            if (mConnectivityManager.isActiveNetworkMetered()) {
+                photoUriBuilder.appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_SCREEN_VALUE);
+            } else {
+                photoUriBuilder.appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_FULL_VALUE);
+            }
             if (data.url != null) {
                 photoUriBuilder.appendQueryParameter(PICASA_URL_KEY, data.url);
             }
@@ -373,6 +395,13 @@ public class PicasaSource extends PhotoSource {
             is = null;
         }
 
+        if (is != null) {
+            mRecycleBin.offer(data);
+            log(TAG, "RECYCLED");
+            while (mRecycleBin.size() > mMaxRecycleSize) {
+                mRecycleBin.poll();
+            }
+        }
         return is;
     }
 }
