@@ -10,8 +10,8 @@
   <application
       android:label="@string/app_name"
       android:icon="@mipmap/ic_launcher_phototable"
-      android:largeHeap="true">
       android:hardwareAccelerated="true"
+      android:largeHeap="true">
       <service android:name="PhotoTableDream"
           android:exported="true"
           android:icon="@mipmap/ic_launcher_phototable"
