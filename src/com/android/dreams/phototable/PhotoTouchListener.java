@@ -128,7 +128,6 @@ public class PhotoTouchListener implements View.OnTouchListener {
                 Math.min(photoWidth * mTableRatio, photoHeight * mTableRatio) / 2f;
         final View photo = target;
         ViewPropertyAnimator animator = photo.animate()
-                .withLayer()
                 .xBy(x1 - x0)
                 .yBy(y1 - y0)
                 .setDuration((int) (1000f * n / 60f))
