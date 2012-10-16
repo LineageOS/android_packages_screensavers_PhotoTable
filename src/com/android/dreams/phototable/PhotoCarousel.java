@@ -31,6 +31,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.ListIterator;
 
 /**
  * A FrameLayout that holds two photos, back to back.
@@ -49,18 +51,46 @@ public class PhotoCarousel extends FrameLayout {
     private final BitmapFactory.Options mOptions;
     private final int mFlipDuration;
     private final int mDropPeriod;
-    private boolean mOnce;
+    private final int mBitmapQueueLimit;
+    private final HashMap<View, Bitmap> mBitmapStore;
+    private final LinkedList<Bitmap> mBitmapQueue;
+    private final LinkedList<PhotoLoadTask> mBitmapLoaders;
+    private View mSpinner;
     private int mOrientation;
     private int mWidth;
     private int mHeight;
     private int mLongSide;
     private int mShortSide;
-    private final HashMap<View, Bitmap> mBitmapStore;
+    private long mLastFlipTime;
 
     class Flipper implements Runnable {
         @Override
         public void run() {
-            PhotoCarousel.this.flip(1f);
+            maybeLoadMore();
+
+            if (mBitmapQueue.isEmpty()) {
+                mSpinner.setVisibility(View.VISIBLE);
+            } else {
+                mSpinner.setVisibility(View.GONE);
+            }
+
+            long now = System.currentTimeMillis();
+            long elapsed = now - mLastFlipTime;
+
+            if (elapsed < mDropPeriod) {
+                scheduleNext((int) mDropPeriod - elapsed);
+            } else {
+                scheduleNext(mDropPeriod);
+                if (changePhoto() || canFlip()) {
+                    flip(1f);
+                    mLastFlipTime = now;
+                }
+            }
+        }
+
+        private void scheduleNext(long delay) {
+            removeCallbacks(mFlipper);
+            postDelayed(mFlipper, delay);
         }
     }
 
@@ -68,12 +98,15 @@ public class PhotoCarousel extends FrameLayout {
         super(context, as);
         final Resources resources = getResources();
         mDropPeriod = resources.getInteger(R.integer.carousel_drop_period);
+        mBitmapQueueLimit = resources.getInteger(R.integer.num_images_to_preload);
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
         mOptions = new BitmapFactory.Options();
         mOptions.inTempStorage = new byte[32768];
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0));
         mBitmapStore = new HashMap<View, Bitmap>();
+        mBitmapQueue = new LinkedList<Bitmap>();
+        mBitmapLoaders = new LinkedList<PhotoLoadTask>();
 
         mPanel = new View[2];
         mFlipper = new Flipper();
@@ -97,49 +130,77 @@ public class PhotoCarousel extends FrameLayout {
     }
 
     private class PhotoLoadTask extends AsyncTask<Void, Void, Bitmap> {
-        private ImageView mDestination;
-
-        public PhotoLoadTask(View destination) {
-            mDestination = (ImageView) destination;
-        }
-
         @Override
         public Bitmap doInBackground(Void... unused) {
-            Bitmap decodedPhoto = mPhotoSource.next(PhotoCarousel.this.mOptions,
-                    PhotoCarousel.this.mLongSide, PhotoCarousel.this.mShortSide);
+            Bitmap decodedPhoto;
+            if (mLongSide == 0 || mShortSide == 0) {
+                return null;
+            }
+            decodedPhoto = mPhotoSource.next(mOptions, mLongSide, mShortSide);
             return decodedPhoto;
         }
 
         @Override
         public void onPostExecute(Bitmap photo) {
             if (photo != null) {
-                Bitmap old = mBitmapStore.get(mDestination);
-                int width = PhotoCarousel.this.mOptions.outWidth;
-                int height = PhotoCarousel.this.mOptions.outHeight;
-                int orientation = (width > height ? LANDSCAPE : PORTRAIT);
-
-                mDestination.setImageBitmap(photo);
-                mDestination.setTag(R.id.photo_orientation, new Integer(orientation));
-                mDestination.setTag(R.id.photo_width, new Integer(width));
-                mDestination.setTag(R.id.photo_height, new Integer(height));
-                PhotoCarousel.this.setScaleType(mDestination);
-
-                mBitmapStore.put(mDestination, photo);
-                if (old != null) {
-                    old.recycle();
-                }
-                PhotoCarousel.this.requestLayout();
-            } else {
-                postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            new PhotoLoadTask(mDestination)
-                                    .execute();
-                        }
-                    }, 100);
+                mBitmapQueue.offer(photo);
             }
+            mFlipper.run();
         }
     };
+
+    private void maybeLoadMore() {
+        if (!mBitmapLoaders.isEmpty()) {
+            for(ListIterator<PhotoLoadTask> i = mBitmapLoaders.listIterator(0);
+                i.hasNext();) {
+                PhotoLoadTask loader = i.next();
+                if (loader.getStatus() == AsyncTask.Status.FINISHED) {
+                    i.remove();
+                }
+            }
+        }
+
+        if ((mBitmapLoaders.size() + mBitmapQueue.size()) < mBitmapQueueLimit) {
+            PhotoLoadTask task = new PhotoLoadTask();
+            mBitmapLoaders.offer(task);
+            task.execute();
+        }
+    }
+
+    private ImageView getBackface() {
+        return (ImageView) ((mPanel[0].getAlpha() < 0.5f) ? mPanel[0] : mPanel[1]);
+    }
+
+    private boolean canFlip() {
+        return mBitmapStore.containsKey(getBackface());
+    }
+
+    private boolean changePhoto() {
+        Bitmap photo = mBitmapQueue.poll();
+        if (photo != null) {
+            ImageView destination = getBackface();
+            Bitmap old = mBitmapStore.get(destination);
+            int width = mOptions.outWidth;
+            int height = mOptions.outHeight;
+            int orientation = (width > height ? LANDSCAPE : PORTRAIT);
+
+            destination.setImageBitmap(photo);
+            destination.setTag(R.id.photo_orientation, new Integer(orientation));
+            destination.setTag(R.id.photo_width, new Integer(width));
+            destination.setTag(R.id.photo_height, new Integer(height));
+            setScaleType(destination);
+
+            mBitmapStore.put(destination, photo);
+
+            if (old != null) {
+                old.recycle();
+            }
+
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     private void setScaleType(View photo) {
         if (photo.getTag(R.id.photo_orientation) != null) {
@@ -192,28 +253,24 @@ public class PhotoCarousel extends FrameLayout {
         ViewPropertyAnimator backAnim = mPanel[1].animate()
                 .rotationY(backY)
                 .alpha(backA)
-                .setDuration(mFlipDuration);
-
-        int replaceIdx = 1;
-        ViewPropertyAnimator replaceAnim = backAnim;
-        if (frontA == 0f) {
-            replaceAnim = frontAnim;
-            replaceIdx = 0;
-        }
-
-        final View replaceView = mPanel[replaceIdx];
-        replaceAnim.withEndAction(new Runnable() {
-                @Override
-                public void run() {
-                    new PhotoLoadTask(replaceView)
-                            .execute();
-                }
-            });
+                .setDuration(mFlipDuration)
+                .withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        maybeLoadMore();
+                    }
+                });
 
         frontAnim.start();
         backAnim.start();
+    }
 
-        scheduleNext(mDropPeriod);
+    @Override
+    public void onAttachedToWindow() {
+        mPanel[0]= findViewById(R.id.front);
+        mPanel[1] = findViewById(R.id.back);
+        mSpinner = findViewById(R.id.spinner);
+        mFlipper.run();
     }
 
     @Override
@@ -222,19 +279,10 @@ public class PhotoCarousel extends FrameLayout {
         mWidth = right - left;
 
         mOrientation = (mWidth > mHeight ? LANDSCAPE : PORTRAIT);
+
+        boolean init = mLongSide == 0;
         mLongSide = (int) Math.max(mWidth, mHeight);
         mShortSide = (int) Math.min(mWidth, mHeight);
-
-        if (!mOnce) {
-            mOnce = true;
-
-            mPanel[0] = findViewById(R.id.front);
-            mPanel[1] = findViewById(R.id.back);
-
-            new PhotoLoadTask(mPanel[0]).execute();
-
-            scheduleNext(mDropPeriod);
-        }
 
         // reset scale types for new aspect ratio
         setScaleType(mPanel[0]);
@@ -247,11 +295,6 @@ public class PhotoCarousel extends FrameLayout {
     public boolean onTouchEvent(MotionEvent event) {
         mGestureDetector.onTouchEvent(event);
         return true;
-    }
-
-    public void scheduleNext(int delay) {
-        removeCallbacks(mFlipper);
-        postDelayed(mFlipper, delay);
     }
 
     private void log(String message) {
