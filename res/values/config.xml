@@ -82,5 +82,8 @@
 
   <!-- Size of image recycling pool when on metered data.  -->
   <integer name="recycle_image_pool_size">20</integer>
+
+  <!-- Number of images to pre-load. -->
+  <integer name="num_images_to_preload">5</integer>
 </resources>
 
