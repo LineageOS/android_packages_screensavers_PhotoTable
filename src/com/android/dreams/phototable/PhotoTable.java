@@ -388,7 +388,6 @@ public class PhotoTable extends FrameLayout {
         log("animate it");
         // toss onto table
         photo.animate()
-                .withLayer()
                 .scaleX(mTableRatio / mImageRatio)
                 .scaleY(mTableRatio / mImageRatio)
                 .rotation(angle)
@@ -442,7 +441,6 @@ public class PhotoTable extends FrameLayout {
         log("animate it");
         // toss onto table
         photo.animate()
-                .withLayer()
                 .rotation(0f)
                 .scaleX(scale)
                 .scaleY(scale)
