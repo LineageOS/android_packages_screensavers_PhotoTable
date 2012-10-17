@@ -16,5 +16,8 @@
 <resources>
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">750000</integer>
+
+  <!-- Parts per million ratio between image size on the table and screen size. -->
+  <integer name="table_ratio">300000</integer>
 </resources>
 

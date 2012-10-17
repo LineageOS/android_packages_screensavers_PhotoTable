@@ -18,7 +18,7 @@
   <integer name="table_drop_period">45000</integer>
 
   <!-- Milliseconds to wait before the next fast drop.-->
-  <integer name="fast_drop">4000</integer>
+  <integer name="fast_drop">3000</integer>
 
   <!-- Milliseconds between drops. -->
   <integer name="carousel_drop_period">10000</integer>
@@ -33,7 +33,7 @@
   <integer name="table_capacity">10</integer>
 
   <!-- Number of images to discard at a time.-->
-  <integer name="redeal_count">3</integer>
+  <integer name="redeal_count">5</integer>
 
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
