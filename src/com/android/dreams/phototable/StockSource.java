@@ -74,7 +74,7 @@ StockSource extends PhotoSource {
     }
 
     @Override
-    protected InputStream getStream(ImageData data) {
+    protected InputStream getStream(ImageData data, int longSide) {
         InputStream is = null;
         try {
             log(TAG, "opening:" + data.id);

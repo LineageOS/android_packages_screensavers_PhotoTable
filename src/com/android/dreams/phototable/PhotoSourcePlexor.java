@@ -72,7 +72,7 @@ public class PhotoSourcePlexor extends PhotoSource {
     }
 
     @Override
-    protected InputStream getStream(ImageData data) {
-        return data.getStream();
+    protected InputStream getStream(ImageData data, int longSide) {
+        return data.getStream(longSide);
     }
 }

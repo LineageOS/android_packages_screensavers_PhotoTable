@@ -52,8 +52,8 @@ public abstract class PhotoSource {
         public String url;
         public int orientation;
 
-        InputStream getStream() {
-            return PhotoSource.this.getStream(this);
+        InputStream getStream(int longSide) {
+            return PhotoSource.this.getStream(this, longSide);
         }
     }
 
@@ -141,7 +141,7 @@ public abstract class PhotoSource {
 
     public Bitmap load(ImageData data, BitmapFactory.Options options, int longSide, int shortSide) {
         log(TAG, "decoding photo resource to " +  longSide + ", " + shortSide);
-        InputStream is = data.getStream();
+        InputStream is = data.getStream(longSide);
 
         Bitmap image = null;
         try {
@@ -247,7 +247,7 @@ public abstract class PhotoSource {
         }
     }
 
-    protected abstract InputStream getStream(ImageData data);
+    protected abstract InputStream getStream(ImageData data, int longSide);
     protected abstract Collection<ImageData> findImages(int howMany);
     public abstract Collection<AlbumData> findAlbums();
 }
