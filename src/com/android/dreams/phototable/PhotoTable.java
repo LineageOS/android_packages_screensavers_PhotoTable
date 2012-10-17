@@ -259,6 +259,7 @@ public class PhotoTable extends FrameLayout {
             if (table.mOptions.outWidth <= 0 || table.mOptions.outHeight <= 0) {
                 photo = null;
             } else {
+                decodedPhoto.setHasMipMap(true);
                 layers[0] = new BitmapDrawable(table.mResources, decodedPhoto);
                 layers[1] = table.mResources.getDrawable(R.drawable.frame);
                 LayerDrawable layerList = new LayerDrawable(layers);
