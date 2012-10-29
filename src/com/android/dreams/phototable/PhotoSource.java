@@ -124,8 +124,9 @@ public abstract class PhotoSource {
 
                 imageData = mImageQueue.poll();
             }
-            if (!mImageQueue.isEmpty()) {
+            if (imageData != null) {
                 image = load(imageData, options, longSide, shortSide);
+                imageData = null;
             }
 
             tries++;
