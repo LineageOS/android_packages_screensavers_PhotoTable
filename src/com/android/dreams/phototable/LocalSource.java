@@ -176,7 +176,7 @@ public class LocalSource extends PhotoSource {
     }
 
     @Override
-    protected InputStream getStream(ImageData data) {
+    protected InputStream getStream(ImageData data, int longSide) {
         FileInputStream fis = null;
         try {
             log(TAG, "opening:" + data.url);
