@@ -20,7 +20,9 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.Uri;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.WindowManager;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -74,6 +76,7 @@ public class PicasaSource extends PhotoSource {
 
     private Set<String> mFoundAlbumIds;
     private int mNextPosition;
+    private int mDisplayLongSide;
 
     public PicasaSource(Context context, SharedPreferences settings) {
         super(context, settings);
@@ -88,6 +91,15 @@ public class PicasaSource extends PhotoSource {
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         mRecycleBin = new LinkedList<ImageData>();
         fillQueue();
+        mDisplayLongSide = getDisplayLongSide();
+    }
+
+    private int getDisplayLongSide() {
+        DisplayMetrics metrics = new DisplayMetrics();
+        WindowManager wm = (WindowManager)
+                mContext.getSystemService(Context.WINDOW_SERVICE);
+        wm.getDefaultDisplay().getMetrics(metrics);
+        return Math.max(metrics.heightPixels, metrics.widthPixels);
     }
 
     @Override
@@ -370,7 +382,7 @@ public class PicasaSource extends PhotoSource {
     }
 
     @Override
-    protected InputStream getStream(ImageData data) {
+    protected InputStream getStream(ImageData data, int longSide) {
         InputStream is = null;
         try {
             Uri.Builder photoUriBuilder = new Uri.Builder()
@@ -378,7 +390,8 @@ public class PicasaSource extends PhotoSource {
                     .authority(PICASA_AUTHORITY)
                     .appendPath(PICASA_PHOTO_PATH)
                     .appendPath(data.id);
-            if (mConnectivityManager.isActiveNetworkMetered()) {
+            if (mConnectivityManager.isActiveNetworkMetered() ||
+                    ((2 * longSide) <= mDisplayLongSide)) {
                 photoUriBuilder.appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_SCREEN_VALUE);
             } else {
                 photoUriBuilder.appendQueryParameter(PICASA_TYPE_KEY, PICASA_TYPE_FULL_VALUE);
