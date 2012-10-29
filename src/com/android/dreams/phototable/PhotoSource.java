@@ -191,18 +191,18 @@ public abstract class PhotoSource {
 
                     if (data.orientation != 0) {
                         log(TAG, "rotated by " + data.orientation + ": fixing");
+                        Matrix matrix = new Matrix();
+                        matrix.setRotate(data.orientation,
+                                (float) Math.floor(image.getWidth() / 2f),
+                                (float) Math.floor(image.getHeight() / 2f));
+                        image = Bitmap.createBitmap(image, 0, 0,
+                                                    options.outWidth, options.outHeight,
+                                                    matrix, true);
                         if (data.orientation == 90 || data.orientation == 270) {
                             int tmp = options.outWidth;
                             options.outWidth = options.outHeight;
                             options.outHeight = tmp;
                         }
-                        Matrix matrix = new Matrix();
-                        matrix.setRotate(data.orientation,
-                                         (float) image.getWidth() / 2,
-                                         (float) image.getHeight() / 2);
-                        image = Bitmap.createBitmap(image, 0, 0,
-                                                    options.outHeight, options.outWidth,
-                                                    matrix, true);
                     }
 
                     log(TAG, "returning bitmap " + image.getWidth() + ", " + image.getHeight());
