@@ -85,7 +85,6 @@ public class PhotoTable extends FrameLayout {
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
     private boolean mIsLandscape;
-    private BitmapFactory.Options mOptions;
     private int mLongSide;
     private int mShortSide;
     private int mWidth;
@@ -114,8 +113,6 @@ public class PhotoTable extends FrameLayout {
         mDropInterpolator = new DecelerateInterpolator(
                 (float) mResources.getInteger(R.integer.drop_deceleration_exponent));
         mOnTable = new LinkedList<View>();
-        mOptions = new BitmapFactory.Options();
-        mOptions.inTempStorage = new byte[32768];
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
         mLauncher = new Launcher(this);
@@ -242,6 +239,13 @@ public class PhotoTable extends FrameLayout {
     }
 
     private class PhotoLaunchTask extends AsyncTask<Void, Void, View> {
+        private final BitmapFactory.Options mOptions;
+
+        public PhotoLaunchTask () {
+            mOptions = new BitmapFactory.Options();
+            mOptions.inTempStorage = new byte[32768];
+        }
+
         @Override
         public View doInBackground(Void... unused) {
             log("load a new photo");
@@ -252,11 +256,11 @@ public class PhotoTable extends FrameLayout {
             View photo = inflater.inflate(R.layout.photo, null);
             ImageView image = (ImageView) photo;
             Drawable[] layers = new Drawable[2];
-            Bitmap decodedPhoto = table.mPhotoSource.next(table.mOptions,
+            Bitmap decodedPhoto = table.mPhotoSource.next(mOptions,
                     table.mLongSide, table.mShortSide);
-            int photoWidth = table.mOptions.outWidth;
-            int photoHeight = table.mOptions.outHeight;
-            if (table.mOptions.outWidth <= 0 || table.mOptions.outHeight <= 0) {
+            int photoWidth = mOptions.outWidth;
+            int photoHeight = mOptions.outHeight;
+            if (mOptions.outWidth <= 0 || mOptions.outHeight <= 0) {
                 photo = null;
             } else {
                 decodedPhoto.setHasMipMap(true);

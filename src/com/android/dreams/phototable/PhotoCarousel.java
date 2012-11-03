@@ -48,7 +48,6 @@ public class PhotoCarousel extends FrameLayout {
     private final PhotoSourcePlexor mPhotoSource;
     private final GestureDetector mGestureDetector;
     private final View[] mPanel;
-    private final BitmapFactory.Options mOptions;
     private final int mFlipDuration;
     private final int mDropPeriod;
     private final int mBitmapQueueLimit;
@@ -100,8 +99,6 @@ public class PhotoCarousel extends FrameLayout {
         mDropPeriod = resources.getInteger(R.integer.carousel_drop_period);
         mBitmapQueueLimit = resources.getInteger(R.integer.num_images_to_preload);
         mFlipDuration = resources.getInteger(R.integer.flip_duration);
-        mOptions = new BitmapFactory.Options();
-        mOptions.inTempStorage = new byte[32768];
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(FlipperDreamSettings.PREFS_NAME, 0));
         mBitmapStore = new HashMap<View, Bitmap>();
@@ -130,6 +127,13 @@ public class PhotoCarousel extends FrameLayout {
     }
 
     private class PhotoLoadTask extends AsyncTask<Void, Void, Bitmap> {
+        private final BitmapFactory.Options mOptions;
+
+        public PhotoLoadTask () {
+            mOptions = new BitmapFactory.Options();
+            mOptions.inTempStorage = new byte[32768];
+        }
+
         @Override
         public Bitmap doInBackground(Void... unused) {
             Bitmap decodedPhoto;
@@ -180,8 +184,8 @@ public class PhotoCarousel extends FrameLayout {
         if (photo != null) {
             ImageView destination = getBackface();
             Bitmap old = mBitmapStore.get(destination);
-            int width = mOptions.outWidth;
-            int height = mOptions.outHeight;
+            int width = photo.getWidth();
+            int height = photo.getHeight();
             int orientation = (width > height ? LANDSCAPE : PORTRAIT);
 
             destination.setImageBitmap(photo);
