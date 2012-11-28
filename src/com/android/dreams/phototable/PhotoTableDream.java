@@ -19,8 +19,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.service.dreams.DreamService;
-import android.view.LayoutInflater;
-import android.view.ViewGroup;
 
 import java.util.Set;
 
@@ -35,28 +33,30 @@ public class PhotoTableDream extends DreamService {
     public void onDreamingStarted() {
         super.onDreamingStarted();
         setInteractive(true);
+
+        BummerView bummer = (BummerView) findViewById(R.id.bummer);
+        if (bummer != null) {
+            Resources resources = getResources();
+            bummer.setAnimationParams(true,
+                    resources.getInteger(R.integer.table_drop_period),
+                    resources.getInteger(R.integer.fast_drop));
+        }
+
+        PhotoTable table = (PhotoTable) findViewById(R.id.table);
+        if (table != null) {
+            table.setDream(this);
+        }
     }
 
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
-        LayoutInflater inflater =
-                (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         AlbumSettings settings = AlbumSettings.getAlbumSettings(
                 getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
         if (settings.isConfigured()) {
-            ViewGroup view = (ViewGroup) inflater.inflate(R.layout.table, null);
-            PhotoTable table = (PhotoTable) view.findViewById(R.id.table);
-            table.setDream(this);
-            setContentView(view);
+            setContentView(R.layout.table);
         } else {
-            Resources resources = getResources();
-            ViewGroup view = (ViewGroup) inflater.inflate(R.layout.bummer, null);
-            BummerView bummer = (BummerView) view.findViewById(R.id.bummer);
-            bummer.setAnimationParams(true,
-                                      resources.getInteger(R.integer.table_drop_period),
-                                      resources.getInteger(R.integer.fast_drop));
-            setContentView(view);
+            setContentView(R.layout.bummer);
         }
         setFullscreen(true);
     }
