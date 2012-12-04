@@ -16,9 +16,13 @@
 package com.android.dreams.phototable;
 
 import android.content.SharedPreferences;
+import android.database.DataSetObserver;
 import android.app.ListActivity;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListAdapter;
 
@@ -31,15 +35,20 @@ public class FlipperDreamSettings extends ListActivity {
     private static final String TAG = "FlipperDreamSettings";
     public static final String PREFS_NAME = FlipperDream.TAG;
 
+    protected SharedPreferences mSettings;
+
     private PhotoSourcePlexor mPhotoSource;
-    private ListAdapter mAdapter;
-    private SharedPreferences mSettings;
+    private SectionedAlbumDataAdapter mAdapter;
+    private MenuItem mSelectAll;
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-
         mSettings = getSharedPreferences(PREFS_NAME, 0);
+        init();
+    }
+
+    protected void init() {
         mPhotoSource = new PhotoSourcePlexor(this, mSettings);
         setContentView(R.layout.settingslist);
 
@@ -56,11 +65,52 @@ public class FlipperDreamSettings extends ListActivity {
 
            @Override
            public void onPostExecute(Void unused) {
+               mAdapter.registerDataSetObserver(new DataSetObserver () {
+                       @Override
+                       public void onChanged() {
+                           updateActionItem();
+                       }
+                       @Override
+                       public void onInvalidated() {
+                           updateActionItem();
+                       }
+                   });
                setListAdapter(mAdapter);
+               updateActionItem();
                if (mAdapter.getCount() == 0) {
                    findViewById(android.R.id.empty).setVisibility(View.GONE);
                }
            }
         }.execute();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.photodream_settings_menu, menu);
+        mSelectAll = menu.findItem(R.id.photodream_menu_all);
+        updateActionItem();
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case R.id.photodream_menu_all:
+            mAdapter.selectAll(!mAdapter.areAllSelected());
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void updateActionItem() {
+        if (mAdapter != null && mSelectAll != null) {
+            if (mAdapter.areAllSelected()) {
+                mSelectAll.setTitle(R.string.photodream_select_none);
+            } else {
+                mSelectAll.setTitle(R.string.photodream_select_all);
+            }
+        }
     }
 }
