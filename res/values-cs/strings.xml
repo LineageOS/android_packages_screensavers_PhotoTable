@@ -16,9 +16,9 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="app_name" msgid="6441943862284988546">"Fotografické spořiče obrazovky"</string>
-    <string name="table_screensaver_name" msgid="1150228032617397055">"Fotografická tabulka"</string>
-    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Fotografický rámeček"</string>
+    <string name="app_name" msgid="6441943862284988546">"Spořič obrazovky - fotografie"</string>
+    <string name="table_screensaver_name" msgid="1150228032617397055">"Foto pult"</string>
+    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Foto rámeček"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Fotky z příspěvků"</string>
     <string name="uploads_album_name" msgid="4057519060978630370">"Okamžité nahrávání"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"Album bez názvu"</string>
