@@ -76,6 +76,7 @@ public class FlipperDreamSettings extends ListActivity {
                        }
                    });
                setListAdapter(mAdapter);
+               getListView().setItemsCanFocus(true);
                updateActionItem();
                if (mAdapter.getCount() == 0) {
                    findViewById(android.R.id.empty).setVisibility(View.GONE);
