@@ -21,8 +21,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
-import android.view.ViewPropertyAnimator;
-import android.view.animation.DecelerateInterpolator;
 
 /**
  * Touch listener that implements phototable interactions.
@@ -127,22 +125,10 @@ public class PhotoTouchListener implements View.OnTouchListener {
         final float halfShortSide =
                 Math.min(photoWidth * mTableRatio, photoHeight * mTableRatio) / 2f;
         final View photo = target;
-        ViewPropertyAnimator animator = photo.animate()
-                .xBy(x1 - x0)
-                .yBy(y1 - y0)
-                .setDuration((int) (1000f * n / 60f))
-                .setInterpolator(new DecelerateInterpolator(2f));
+        boolean flingAway = y1 + halfShortSide < 0f || y1 - halfShortSide > tableHeight ||
+                x1 + halfShortSide < 0f || x1 - halfShortSide > tableWidth;
 
-        if (y1 + halfShortSide < 0f || y1 - halfShortSide > tableHeight ||
-            x1 + halfShortSide < 0f || x1 - halfShortSide > tableWidth) {
-            log("fling away");
-            animator.withEndAction(new Runnable() {
-                    @Override
-                    public void run() {
-                        mTable.fadeAway(photo, true);
-                    }
-                });
-        }
+        mTable.fling(photo, x1 - x0, y1 - y0, (int) (1000f * n / 60f), flingAway, false);
     }
 
     @Override
@@ -158,7 +144,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
 
         switch (action) {
         case MotionEvent.ACTION_DOWN:
-            mTable.moveToBackOfQueue(target);
+            mTable.moveToTopOfPile(target);
             mInitialTouchTime = ev.getEventTime();
             mA = ev.getPointerId(ev.getActionIndex());
             resetTouch(target);

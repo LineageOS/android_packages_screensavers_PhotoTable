@@ -21,22 +21,25 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.PointF;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.AsyncTask;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.FrameLayout.LayoutParams;
 import android.widget.ImageView;
-
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -48,22 +51,26 @@ public class PhotoTable extends FrameLayout {
     private static final boolean DEBUG = false;
 
     class Launcher implements Runnable {
-        private final PhotoTable mTable;
-        public Launcher(PhotoTable table) {
-            mTable = table;
-        }
-
         @Override
         public void run() {
-            mTable.scheduleNext(mDropPeriod);
-            mTable.launch();
+            PhotoTable.this.scheduleNext(mDropPeriod);
+            PhotoTable.this.launch();
         }
     }
 
-    private static final long MAX_SELECTION_TIME = 10000L;
+    class FocusReaper implements Runnable {
+        @Override
+        public void run() {
+            PhotoTable.this.clearFocus();
+        }
+    }
+
+    private static final int MAX_SELECTION_TIME = 10000;
+    private static final int MAX_FOCUS_TIME = 5000;
     private static Random sRNG = new Random();
 
     private final Launcher mLauncher;
+    private final FocusReaper mFocusReaper;
     private final LinkedList<View> mOnTable;
     private final int mDropPeriod;
     private final int mFastDropPeriod;
@@ -91,6 +98,9 @@ public class PhotoTable extends FrameLayout {
     private int mHeight;
     private View mSelected;
     private long mSelectedTime;
+    private View mFocused;
+    private long mFocusedTime;
+    private int mHighlightColor;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -107,6 +117,7 @@ public class PhotoTable extends FrameLayout {
         mTableCapacity = mResources.getInteger(R.integer.table_capacity);
         mRedealCount = mResources.getInteger(R.integer.redeal_count);
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
+        mHighlightColor = mResources.getColor(R.color.highlight_color);
         mThrowInterpolator = new SoftLandingInterpolator(
                 mResources.getInteger(R.integer.soft_landing_time) / 1000000f,
                 mResources.getInteger(R.integer.soft_landing_distance) / 1000000f);
@@ -115,7 +126,8 @@ public class PhotoTable extends FrameLayout {
         mOnTable = new LinkedList<View>();
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
-        mLauncher = new Launcher(this);
+        mLauncher = new Launcher();
+        mFocusReaper = new FocusReaper();
         mStarted = false;
     }
 
@@ -133,18 +145,44 @@ public class PhotoTable extends FrameLayout {
     }
 
     public void clearSelection() {
+        if (hasSelection()) {
+            dropOnTable(getSelected());
+        }
         mSelected = null;
     }
 
     public void setSelection(View selected) {
         assert(selected != null);
-        if (mSelected != null) {
-            dropOnTable(mSelected);
-        }
+        clearSelection();
         mSelected = selected;
         mSelectedTime = System.currentTimeMillis();
-        bringChildToFront(selected);
+        moveToTopOfPile(selected);
         pickUp(selected);
+    }
+
+    public boolean hasFocus() {
+        return mFocused != null;
+    }
+
+    public View getFocused() {
+        return mFocused;
+    }
+
+    public void clearFocus() {
+        if (hasFocus()) {
+            setHighlight(getFocused(), false);
+        }
+        mFocused = null;
+    }
+
+    public void setFocus(View focus) {
+        assert(focus != null);
+        clearFocus();
+        mFocused = focus;
+        mFocusedTime = System.currentTimeMillis();
+        moveToTopOfPile(focus);
+        setHighlight(focus, true);
+        scheduleFocusReaper(MAX_FOCUS_TIME);
     }
 
     static float lerp(float a, float b, float f) {
@@ -192,11 +230,141 @@ public class PhotoTable extends FrameLayout {
         return p;
     }
 
+    private double cross(double[] a, double[] b) {
+        return a[0] * b[1] - a[1] * b[0];
+    }
+
+    private double dot(double[] a, double[] b) {
+        return a[0] * b[0] + a[1] * b[1];
+    }
+
+    private double norm(double[] a) {
+        return Math.hypot(a[0], a[1]);
+    }
+
+    private double[] getCenter(View photo) {
+        float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
+        float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
+        double[] center = { photo.getX() + width / 2f,
+                            - (photo.getY() + height / 2f) };
+        return center;
+    }
+
+    public View moveFocus(View focus, float direction) {
+        return moveFocus(focus, direction, 90f);
+    }
+
+    public View moveFocus(View focus, float direction, float angle) {
+        if (focus == null) {
+            setFocus(mOnTable.getLast());
+        } else {
+            final double alpha = Math.toRadians(direction);
+            final double beta = Math.toRadians(Math.min(angle, 180f) / 2f);
+            final double[] left = { Math.sin(alpha - beta),
+                                    Math.cos(alpha - beta) };
+            final double[] right = { Math.sin(alpha + beta),
+                                     Math.cos(alpha + beta) };
+            final double[] a = getCenter(focus);
+            View bestFocus = null;
+            double bestDistance = Double.MAX_VALUE;
+            for (View candidate: mOnTable) {
+                if (candidate != focus) {
+                    final double[] b = getCenter(candidate);
+                    final double[] delta = { b[0] - a[0],
+                                             b[1] - a[1] };
+                    if (cross(delta, left) > 0.0 && cross(delta, right) < 0.0) {
+                        final double distance = norm(delta);
+                        if (bestDistance > distance) {
+                            bestDistance = distance;
+                            bestFocus = candidate;
+                        }
+                    }
+                }
+            }
+            if (bestFocus == null) {
+                if (angle < 180f) {
+                    return moveFocus(focus, direction, 180f);
+                } else {
+                    clearFocus();
+                }
+            } else {
+                setFocus(bestFocus);
+            }
+        }
+        return getFocused();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        final View focus = getFocused();
+        boolean consumed = true;
+
+        if (hasSelection()) {
+            switch (keyCode) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ESCAPE:
+                setFocus(getSelected());
+                clearSelection();
+                break;
+            default:
+                log("dropped unexpected: " + keyCode);
+                consumed = false;
+                break;
+            }
+        } else {
+            switch (keyCode) {
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+                if (hasFocus()) {
+                    setSelection(getFocused());
+                    clearFocus();
+                } else {
+                    setFocus(mOnTable.getLast());
+                }
+                break;
+
+            case KeyEvent.KEYCODE_DEL:
+            case KeyEvent.KEYCODE_X:
+                if (hasFocus()) {
+                    fling(getFocused());
+                }
+                break;
+
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_K:
+                moveFocus(focus, 0f);
+                break;
+
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_L:
+                moveFocus(focus, 90f);
+                break;
+
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_J:
+                moveFocus(focus, 180f);
+                break;
+
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_H:
+                moveFocus(focus, 270f);
+                break;
+
+            default:
+                log("dropped unexpected: " + keyCode);
+                consumed = false;
+                break;
+            }
+        }
+
+        return consumed;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             if (hasSelection()) {
-                dropOnTable(getSelected());
                 clearSelection();
             } else  {
                 if (mTapToExit && mDream != null) {
@@ -289,7 +457,7 @@ public class PhotoTable extends FrameLayout {
                 table.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
                                                        LayoutParams.WRAP_CONTENT));
                 if (table.hasSelection()) {
-                    table.bringChildToFront(table.getSelected());
+                    table.moveToTopOfPile(table.getSelected());
                 }
                 int width = ((Integer) photo.getTag(R.id.photo_width)).intValue();
                 int height = ((Integer) photo.getTag(R.id.photo_height)).intValue();
@@ -316,7 +484,6 @@ public class PhotoTable extends FrameLayout {
         setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
         if (hasSelection() &&
                 (System.currentTimeMillis() - mSelectedTime) > MAX_SELECTION_TIME) {
-            dropOnTable(getSelected());
             clearSelection();
         } else {
             log("inflate it");
@@ -330,6 +497,9 @@ public class PhotoTable extends FrameLayout {
     public void fadeAway(final View photo, final boolean replace) {
         // fade out of view
         mOnTable.remove(photo);
+        if (photo == getFocused()) {
+            clearFocus();
+        }
         photo.animate().cancel();
         photo.animate()
                 .withLayer()
@@ -347,7 +517,7 @@ public class PhotoTable extends FrameLayout {
                     });
     }
 
-    public void moveToBackOfQueue(View photo) {
+    public void moveToTopOfPile(View photo) {
         // make this photo the last to be removed.
         bringChildToFront(photo);
         invalidate();
@@ -365,6 +535,54 @@ public class PhotoTable extends FrameLayout {
         photo.setY(-mLongSide);
 
         dropOnTable(photo, mThrowInterpolator);
+    }
+
+    public void fling(final View photo) {
+        final float[] o = { mWidth + mLongSide / 2f,
+                            mHeight + mLongSide / 2f };
+        final float[] a = { photo.getX(), photo.getY() };
+        final float[] b = { o[0], a[1] + o[0] - a[0] };
+        final float[] c = { a[0] + o[1] - a[1], o[1] };
+        float[] delta = { 0f, 0f };
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) < Math.hypot(c[0] - a[0], c[1] - a[1])) {
+            delta[0] = b[0] - a[0];
+            delta[1] = b[1] - a[1];
+        } else {
+            delta[0] = c[0] - a[0];
+            delta[1] = c[1] - a[1];
+        }
+
+        final float dist = (float) Math.hypot(delta[0], delta[1]);
+        final int duration = (int) (1000f * dist / mThrowSpeed);
+        fling (photo, delta[0], delta[1], duration, true, true);
+    }
+
+    public void fling(final View photo, float dx, float dy, int duration,
+            boolean flingAway, boolean spin) {
+        if (photo == getFocused()) {
+            if (moveFocus(photo, 0f) == null) {
+                moveFocus(photo, 180f);
+            }
+        }
+        ViewPropertyAnimator animator = photo.animate()
+                .xBy(dx)
+                .yBy(dy)
+                .setDuration(duration)
+                .setInterpolator(new DecelerateInterpolator(2f));
+
+        if (spin) {
+            animator.rotation(mThrowRotation);
+        }
+
+        if (flingAway) {
+            log("fling away");
+            animator.withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        fadeAway(photo, true);
+                    }
+                });
+        }
     }
 
     public void dropOnTable(final View photo) {
@@ -393,7 +611,7 @@ public class PhotoTable extends FrameLayout {
         float dx = x - x0;
         float dy = y - y0;
 
-        float dist = (float) (Math.sqrt(dx * dx + dy * dy));
+        float dist = (float) Math.hypot(dx, dy);
         int duration = (int) (1000f * dist / mThrowSpeed);
         duration = Math.max(duration, 1000);
 
@@ -463,6 +681,16 @@ public class PhotoTable extends FrameLayout {
         bitmap.getBitmap().recycle();
     }
 
+    public void setHighlight(View photo, boolean highlighted) {
+        ImageView image = (ImageView) photo;
+        LayerDrawable layers = (LayerDrawable) image.getDrawable();
+        if (highlighted) {
+            layers.getDrawable(1).setColorFilter(mHighlightColor, PorterDuff.Mode.SRC_IN);
+        } else {
+            layers.getDrawable(1).clearColorFilter();
+        }
+    }
+
     public void start() {
         if (!mStarted) {
             log("kick it");
@@ -470,6 +698,11 @@ public class PhotoTable extends FrameLayout {
             scheduleNext(mDropPeriod);
             launch();
         }
+    }
+
+    public void scheduleFocusReaper(int delay) {
+        removeCallbacks(mFocusReaper);
+        postDelayed(mFocusReaper, delay);
     }
 
     public void scheduleNext(int delay) {

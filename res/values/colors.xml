@@ -18,4 +18,5 @@
     <color name="tabletop_dark">#ff222222</color>
     <color name="vignette_light">#00000000</color>
     <color name="vignette_dark">#bf000000</color>
+    <color name="highlight_color">@android:color/holo_blue_bright</color>
 </resources>
