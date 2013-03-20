@@ -17,7 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="6441943862284988546">"Bilder som skjermsparere"</string>
-    <string name="table_screensaver_name" msgid="1150228032617397055">"Bildetabell"</string>
+    <string name="table_screensaver_name" msgid="1150228032617397055">"Bildekollasj"</string>
     <string name="flipper_screensaver_name" msgid="6988572107391523141">"Bilderamme"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Bilder fra innlegg"</string>
     <string name="uploads_album_name" msgid="4057519060978630370">"Direkteopplastinger"</string>
