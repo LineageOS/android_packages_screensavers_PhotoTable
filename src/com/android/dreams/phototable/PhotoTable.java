@@ -24,6 +24,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -90,6 +91,8 @@ public class PhotoTable extends FrameLayout {
     private final Resources mResources;
     private final Interpolator mThrowInterpolator;
     private final Interpolator mDropInterpolator;
+    final private EdgeSwipeDetector mEdgeSwipeDetector;
+    final private DragGestureDetector mDragGestureDetector;
     private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
     private boolean mStarted;
@@ -103,7 +106,6 @@ public class PhotoTable extends FrameLayout {
     private View mFocused;
     private long mFocusedTime;
     private int mHighlightColor;
-    private EdgeSwipeDetector mEdgeSwipeDetector;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -132,6 +134,7 @@ public class PhotoTable extends FrameLayout {
         mLauncher = new Launcher();
         mFocusReaper = new FocusReaper();
         mEdgeSwipeDetector = new EdgeSwipeDetector(context, this);
+        mDragGestureDetector = new DragGestureDetector(context, this);
         mStarted = false;
     }
 
@@ -365,7 +368,7 @@ public class PhotoTable extends FrameLayout {
 
     @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
-        return mEdgeSwipeDetector.onTouchEvent(event);
+        return mEdgeSwipeDetector.onTouchEvent(event) || mDragGestureDetector.onTouchEvent(event);
     }
 
     @Override
@@ -544,6 +547,19 @@ public class PhotoTable extends FrameLayout {
         dropOnTable(photo, mThrowInterpolator);
     }
 
+    public void move(final View photo, float dx, float dy, boolean drop) {
+        if (photo != null) {
+            final float x = photo.getX() + dx;
+            final float y = photo.getY() + dy;
+            photo.setX(x);
+            photo.setY(y);
+            Log.d(TAG, "[" + photo.getX() + ", " + photo.getY() + "] + (" + dx + "," + dy + ")");
+            if (drop && photoOffTable(photo)) {
+                fadeAway(photo, true);
+            }
+        }
+    }
+
     public void fling(final View photo) {
         final float[] o = { mWidth + mLongSide / 2f,
                             mHeight + mLongSide / 2f };
@@ -561,11 +577,10 @@ public class PhotoTable extends FrameLayout {
 
         final float dist = (float) Math.hypot(delta[0], delta[1]);
         final int duration = (int) (1000f * dist / mThrowSpeed);
-        fling(photo, delta[0], delta[1], duration, true, true);
+        fling(photo, delta[0], delta[1], duration, true);
     }
 
-    public void fling(final View photo, float dx, float dy, int duration,
-            boolean flingAway, boolean spin) {
+    public void fling(final View photo, float dx, float dy, int duration, boolean spin) {
         if (photo == getFocused()) {
             if (moveFocus(photo, 0f) == null) {
                 moveFocus(photo, 180f);
@@ -581,7 +596,7 @@ public class PhotoTable extends FrameLayout {
             animator.rotation(mThrowRotation);
         }
 
-        if (flingAway) {
+        if (photoOffTable(photo, (int) dx, (int) dy)) {
             log("fling away");
             animator.withEndAction(new Runnable() {
                     @Override
@@ -590,6 +605,17 @@ public class PhotoTable extends FrameLayout {
                     }
                 });
         }
+    }
+    public boolean photoOffTable(final View photo) {
+        return photoOffTable(photo, 0, 0);
+    }
+
+    public boolean photoOffTable(final View photo, final int dx, final int dy) {
+        Rect hit = new Rect();
+        photo.getHitRect(hit);
+        hit.offset(dx, dy);
+        return (hit.bottom < 0f || hit.top > getHeight() ||
+                hit.right < 0f || hit.left > getWidth());
     }
 
     public void dropOnTable(final View photo) {
@@ -705,6 +731,10 @@ public class PhotoTable extends FrameLayout {
             scheduleNext(mDropPeriod);
             launch();
         }
+    }
+
+    public void refreshFocus() {
+        scheduleFocusReaper(MAX_FOCUS_TIME);
     }
 
     public void scheduleFocusReaper(int delay) {

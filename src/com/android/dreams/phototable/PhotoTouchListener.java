@@ -118,17 +118,7 @@ public class PhotoTouchListener implements View.OnTouchListener {
         final float x1 = x0 + s * dX / v;
         final float y1 = y0 + s * dY / v;
 
-        final float photoWidth = ((Integer) target.getTag(R.id.photo_width)).floatValue();
-        final float photoHeight = ((Integer) target.getTag(R.id.photo_height)).floatValue();
-        final float tableWidth = mTable.getWidth();
-        final float tableHeight = mTable.getHeight();
-        final float halfShortSide =
-                Math.min(photoWidth * mTableRatio, photoHeight * mTableRatio) / 2f;
-        final View photo = target;
-        boolean flingAway = y1 + halfShortSide < 0f || y1 - halfShortSide > tableHeight ||
-                x1 + halfShortSide < 0f || x1 - halfShortSide > tableWidth;
-
-        mTable.fling(photo, x1 - x0, y1 - y0, (int) (1000f * n / 60f), flingAway, false);
+        mTable.fling(target, x1 - x0, y1 - y0, (int) (1000f * n / 60f), false);
     }
 
     @Override
