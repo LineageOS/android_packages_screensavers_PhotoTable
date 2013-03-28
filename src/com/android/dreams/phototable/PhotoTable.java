@@ -260,7 +260,7 @@ public class PhotoTable extends FrameLayout {
                     table.mLongSide, table.mShortSide);
             int photoWidth = mOptions.outWidth;
             int photoHeight = mOptions.outHeight;
-            if (mOptions.outWidth <= 0 || mOptions.outHeight <= 0) {
+            if (decodedPhoto == null || mOptions.outWidth <= 0 || mOptions.outHeight <= 0) {
                 photo = null;
             } else {
                 decodedPhoto.setHasMipMap(true);
