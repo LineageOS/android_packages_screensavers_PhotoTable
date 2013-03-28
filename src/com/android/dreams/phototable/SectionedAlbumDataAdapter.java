@@ -53,6 +53,16 @@ public class SectionedAlbumDataAdapter extends DataSetObserver implements ListAd
         mAlbumData.registerDataSetObserver(this);
     }
 
+    boolean areAllSelected() {
+        return mAlbumData != null && mAlbumData.areAllSelected();
+    }
+
+    void selectAll(boolean select) {
+        if (mAlbumData != null) {
+            mAlbumData.selectAll(select);
+        }
+    }
+
     // DataSetObserver
 
     @Override
