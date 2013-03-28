@@ -19,6 +19,9 @@ import android.content.SharedPreferences;
 import android.app.ListActivity;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.ListAdapter;
 
 import java.util.LinkedList;
@@ -26,37 +29,14 @@ import java.util.LinkedList;
 /**
  * Settings panel for photo flipping dream.
  */
-public class PhotoTableDreamSettings extends ListActivity {
+public class PhotoTableDreamSettings extends FlipperDreamSettings {
     private static final String TAG = "PhotoTableDreamSettings";
     public static final String PREFS_NAME = PhotoTableDream.TAG;
-
-    private PhotoSourcePlexor mPhotoSource;
-    private ListAdapter mAdapter;
-    private SharedPreferences mSettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
-
         mSettings = getSharedPreferences(PREFS_NAME, 0);
-        mPhotoSource = new PhotoSourcePlexor(this, mSettings);
-        setContentView(R.layout.settingslist);
-
-        new AsyncTask<Void, Void, Void>() {
-            @Override
-            public Void doInBackground(Void... unused) {
-                mAdapter = new SectionedAlbumDataAdapter(PhotoTableDreamSettings.this,
-                        mSettings,
-                        R.layout.header,
-                        R.layout.album,
-                        new LinkedList<PhotoSource.AlbumData>(mPhotoSource.findAlbums()));
-                return null;
-            }
-
-           @Override
-           public void onPostExecute(Void unused) {
-               setListAdapter(mAdapter);
-           }
-        }.execute();
+        init();
     }
 }

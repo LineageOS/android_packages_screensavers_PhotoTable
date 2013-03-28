@@ -40,4 +40,11 @@
 
     <!-- Instruct the user to configure the screensaver in settings to see photos. -->
     <string name="need_to_configure">No photos selected.</string>
+
+    <!-- Click to select all albums in the album selection activity. [CHAR LIMIT=15] -->
+    <string name="photodream_select_all">Select All</string>
+
+    <!-- Click to clear selection in the album selection activity. [CHAR LIMIT=15] -->
+    <string name="photodream_select_none">Deselect All</string>
+
 </resources>
