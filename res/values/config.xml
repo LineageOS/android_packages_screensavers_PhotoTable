@@ -85,5 +85,14 @@
 
   <!-- Number of images to pre-load. -->
   <integer name="num_images_to_preload">5</integer>
+
+  <!-- distance from edge to start a valid edge swipe as a fraction of
+  touch area width, in parts per million from 0 to 1. -->
+  <integer name="table_edge_swipe_gutter">50000</integer>
+
+  <!-- minimum length of a valid edge swipe as a fraction of
+  touch area width, in parts per million from 0 to 1. -->
+  <integer name="table_edge_swipe_threshold">100000</integer>
+
 </resources>
 
