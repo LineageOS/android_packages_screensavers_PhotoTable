@@ -80,7 +80,8 @@ public class PhotoCarousel extends FrameLayout {
                 scheduleNext((int) mDropPeriod - elapsed);
             } else {
                 scheduleNext(mDropPeriod);
-                if (changePhoto() || canFlip()) {
+                if (changePhoto() ||
+                        (elapsed > (5 * mDropPeriod) && canFlip())) {
                     flip(1f);
                     mLastFlipTime = now;
                 }
@@ -107,6 +108,7 @@ public class PhotoCarousel extends FrameLayout {
 
         mPanel = new View[2];
         mFlipper = new Flipper();
+        // this is dead code if the dream calls setInteractive(false)
         mGestureDetector = new GestureDetector(context,
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
