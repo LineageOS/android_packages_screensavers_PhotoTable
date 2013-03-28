@@ -119,7 +119,7 @@ public class PhotoTable extends FrameLayout {
         mStarted = false;
     }
 
-    
+
     public void setDream(DreamService dream) {
         mDream = dream;
     }
@@ -297,6 +297,13 @@ public class PhotoTable extends FrameLayout {
                 log("drop it");
                 table.throwOnTable(photo);
 
+                if (mOnTable.size() > mTableCapacity) {
+                    int targetSize = Math.max(0, mOnTable.size() - mRedealCount);
+                    while (mOnTable.size() > targetSize) {
+                        fadeAway(mOnTable.poll(), false);
+                    }
+                }
+
                 if(table.mOnTable.size() < table.mTableCapacity) {
                     table.scheduleNext(table.mFastDropPeriod);
                 }
@@ -399,19 +406,7 @@ public class PhotoTable extends FrameLayout {
                 .x(x)
                 .y(y)
                 .setDuration(duration)
-                .setInterpolator(interpolator)
-                .withEndAction(new Runnable() {
-                        @Override
-                            public void run() {
-                            if (mOnTable.size() > mTableCapacity) {
-                                while (mOnTable.size() > (mTableCapacity - mRedealCount)) {
-                                    fadeAway(mOnTable.poll(), false);
-                                }
-                                // zero delay because we already waited duration ms
-                                scheduleNext(0);
-                            }
-                        }
-                    });
+                .setInterpolator(interpolator);
     }
 
     /** wrap all orientations to the interval [-180, 180). */
