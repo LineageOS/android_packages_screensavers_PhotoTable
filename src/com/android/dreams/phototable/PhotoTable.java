@@ -67,6 +67,8 @@ public class PhotoTable extends FrameLayout {
 
     private static final int MAX_SELECTION_TIME = 10000;
     private static final int MAX_FOCUS_TIME = 5000;
+    private static final float EDGE_SWIPE_GUTTER = 0.05f;
+    private static final float EDGE_SWIPE_THRESHOLD = 0.25f;
     private static Random sRNG = new Random();
 
     private final Launcher mLauncher;
@@ -101,6 +103,7 @@ public class PhotoTable extends FrameLayout {
     private View mFocused;
     private long mFocusedTime;
     private int mHighlightColor;
+    private EdgeSwipeDetector mEdgeSwipeDetector;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -128,6 +131,7 @@ public class PhotoTable extends FrameLayout {
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
         mLauncher = new Launcher();
         mFocusReaper = new FocusReaper();
+        mEdgeSwipeDetector = new EdgeSwipeDetector(context, this);
         mStarted = false;
     }
 
@@ -284,8 +288,6 @@ public class PhotoTable extends FrameLayout {
             if (bestFocus == null) {
                 if (angle < 180f) {
                     return moveFocus(focus, direction, 180f);
-                } else {
-                    clearFocus();
                 }
             } else {
                 setFocus(bestFocus);
@@ -359,6 +361,11 @@ public class PhotoTable extends FrameLayout {
         }
 
         return consumed;
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        return mEdgeSwipeDetector.onTouchEvent(event);
     }
 
     @Override
@@ -554,7 +561,7 @@ public class PhotoTable extends FrameLayout {
 
         final float dist = (float) Math.hypot(delta[0], delta[1]);
         final int duration = (int) (1000f * dist / mThrowSpeed);
-        fling (photo, delta[0], delta[1], duration, true, true);
+        fling(photo, delta[0], delta[1], duration, true, true);
     }
 
     public void fling(final View photo, float dx, float dy, int duration,
