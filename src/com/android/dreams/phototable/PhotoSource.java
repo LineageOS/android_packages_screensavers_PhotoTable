@@ -43,6 +43,9 @@ public abstract class PhotoSource {
     private static final String TAG = "PhotoTable.PhotoSource";
     private static final boolean DEBUG = false;
 
+    // An invalid cursor position to represent the uninitialized state.
+    protected static final int INVALID = -2;
+
     // This should be large enough for BitmapFactory to decode the header so
     // that we can mark and reset the input stream to avoid duplicate network i/o
     private static final int BUFFER_SIZE = 128 * 1024;
@@ -245,6 +248,14 @@ public abstract class PhotoSource {
     protected static void log(String tag, String message) {
         if (DEBUG) {
             Log.i(tag, message);
+        }
+    }
+
+    protected int pickRandomStart(int total, int max) {
+        if (max >= total) {
+            return -1;
+        } else {
+            return (mRNG.nextInt() % (total - max)) - 1;
         }
     }
 

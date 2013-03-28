@@ -36,14 +36,14 @@ public class LocalSource extends PhotoSource {
     private final String mUnknownAlbumName;
     private final String mLocalSourceName;
     private Set<String> mFoundAlbumIds;
-    private int mNextPosition;
+    private int mLastPosition;
 
     public LocalSource(Context context, SharedPreferences settings) {
         super(context, settings);
         mLocalSourceName = mResources.getString(R.string.local_source_name, "Photos on Device");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         mSourceName = TAG;
-        mNextPosition = -1;
+        mLastPosition = INVALID;
         fillQueue();
     }
 
@@ -65,7 +65,7 @@ public class LocalSource extends PhotoSource {
         Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection, null, null, null);
         if (cursor != null) {
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
             int bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
@@ -75,7 +75,7 @@ public class LocalSource extends PhotoSource {
             if (bucketIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     String id = TAG + ":" + cursor.getString(bucketIndex);
                     AlbumData data = foundAlbums.get(id);
                     if (foundAlbums.get(id) == null) {
@@ -102,7 +102,6 @@ public class LocalSource extends PhotoSource {
                                         updated :
                                         Math.min(data.updated, updated));
                     }
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
@@ -139,13 +138,10 @@ public class LocalSource extends PhotoSource {
         Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection, selection, null, null);
         if (cursor != null) {
-            if (cursor.getCount() > howMany && mNextPosition == -1) {
-                mNextPosition = mRNG.nextInt() % (cursor.getCount() - howMany);
+            if (cursor.getCount() > howMany && mLastPosition == INVALID) {
+                mLastPosition = pickRandomStart(cursor.getCount(), howMany);
             }
-            if (mNextPosition == -1) {
-                mNextPosition = 0;
-            }
-            cursor.moveToPosition(mNextPosition);
+            cursor.moveToPosition(mLastPosition);
 
             int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
             int orientationIndex = cursor.getColumnIndex(MediaStore.Images.Media.ORIENTATION);
@@ -155,17 +151,18 @@ public class LocalSource extends PhotoSource {
             if (dataIndex < 0) {
                 log(TAG, "can't find the DATA column!");
             } else {
-                while (foundImages.size() < howMany && !cursor.isAfterLast()) {
+                while (foundImages.size() < howMany && cursor.moveToNext()) {
                     ImageData data = new ImageData();
                     data.url = cursor.getString(dataIndex);
                     data.orientation = cursor.getInt(orientationIndex);
                     foundImages.offer(data);
-                    if (cursor.moveToNext()) {
-                        mNextPosition++;
-                    }
+                    mLastPosition = cursor.getPosition();
                 }
                 if (cursor.isAfterLast()) {
-                    mNextPosition = 0;
+                    mLastPosition = -1;
+                }
+                if (cursor.isBeforeFirst()) {
+                    mLastPosition = INVALID;
                 }
             }
 
