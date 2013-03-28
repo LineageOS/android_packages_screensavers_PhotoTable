@@ -75,13 +75,13 @@ public class PicasaSource extends PhotoSource {
     private final int mMaxRecycleSize;
 
     private Set<String> mFoundAlbumIds;
-    private int mNextPosition;
+    private int mLastPosition;
     private int mDisplayLongSide;
 
     public PicasaSource(Context context, SharedPreferences settings) {
         super(context, settings);
         mSourceName = TAG;
-        mNextPosition = -1;
+        mLastPosition = INVALID;
         mMaxPostAblums = mResources.getInteger(R.integer.max_post_albums);
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
         mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
@@ -162,15 +162,12 @@ public class PicasaSource extends PhotoSource {
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
                 projection, selection.toString(), null, null);
         if (cursor != null) {
-            if (cursor.getCount() > howMany && mNextPosition == -1) {
-                mNextPosition =
-                        (int) Math.abs(mRNG.nextInt() % (cursor.getCount() - howMany));
+            if (cursor.getCount() > howMany && mLastPosition == INVALID) {
+                mLastPosition = pickRandomStart(cursor.getCount(), howMany);
             }
-            if (mNextPosition == -1) {
-                mNextPosition = 0;
-            }
-            log(TAG, "moving to position: " + mNextPosition);
-            cursor.moveToPosition(mNextPosition);
+
+            log(TAG, "moving to position: " + mLastPosition);
+            cursor.moveToPosition(mLastPosition);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
             int urlIndex = cursor.getColumnIndex(PICASA_URL);
@@ -180,7 +177,7 @@ public class PicasaSource extends PhotoSource {
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (foundImages.size() < howMany && !cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     if (idIndex >= 0) {
                         ImageData data = new ImageData();
                         data.id = cursor.getString(idIndex);
@@ -191,12 +188,13 @@ public class PicasaSource extends PhotoSource {
 
                         foundImages.offer(data);
                     }
-                    if (cursor.moveToNext()) {
-                        mNextPosition++;
-                    }
+                    mLastPosition = cursor.getPosition();
                 }
                 if (cursor.isAfterLast()) {
-                    mNextPosition = 0;
+                    mLastPosition = -1;
+                }
+                if (cursor.isBeforeFirst()) {
+                    mLastPosition = INVALID;
                 }
             }
 
@@ -254,7 +252,7 @@ public class PicasaSource extends PhotoSource {
                 projection, selection, null, order);
         if (cursor != null) {
             log(TAG, " " + id + " resolved to " + cursor.getCount() + " albums");
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
             int typeIndex = cursor.getColumnIndex(PICASA_ALBUM_TYPE);
@@ -262,9 +260,8 @@ public class PicasaSource extends PhotoSource {
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     albumIds.add(cursor.getString(idIndex));
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
@@ -296,7 +293,7 @@ public class PicasaSource extends PhotoSource {
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
                 projection, null, null, null);
         if (cursor != null) {
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
             int thumbIndex = cursor.getColumnIndex(PICASA_THUMB);
@@ -308,7 +305,7 @@ public class PicasaSource extends PhotoSource {
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     String id = TAG + ":" + cursor.getString(idIndex);
                     String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
                     String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
@@ -367,8 +364,6 @@ public class PicasaSource extends PhotoSource {
                     if (data.thumbnailUrl == null || data.updated == updated) {
                         data.thumbnailUrl = thumbnailUrl;
                     }
-
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
