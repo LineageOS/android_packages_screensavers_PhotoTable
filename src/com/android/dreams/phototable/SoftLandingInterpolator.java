@@ -16,10 +16,9 @@
 
 package com.android.dreams.phototable;
 
-import android.view.animation.Interpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
-import android.util.Log;
 
 /**
  * An interpolator where the rate of change starts out quickly and
@@ -31,7 +30,6 @@ public class SoftLandingInterpolator implements Interpolator {
     private final DecelerateInterpolator slide;
     private final float mI;
     private final float mO;
-    private final float lowerRange;
     private final float upperRange;
     private final float bottom;
     private final float top;
@@ -44,7 +42,6 @@ public class SoftLandingInterpolator implements Interpolator {
         final float epsilon = Math.min(mI / 2f, (1f - mI) / 2f);
         bottom = mI - epsilon;
         top = mI + epsilon;
-        lowerRange = top;
         upperRange = 1f - bottom;
     }
 

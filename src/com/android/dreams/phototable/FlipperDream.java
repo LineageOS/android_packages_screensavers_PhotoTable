@@ -15,7 +15,6 @@
  */
 package com.android.dreams.phototable;
 
-import android.content.SharedPreferences;
 import android.service.dreams.DreamService;
 
 /**

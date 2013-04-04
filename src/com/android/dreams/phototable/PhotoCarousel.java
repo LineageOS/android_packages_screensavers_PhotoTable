@@ -20,7 +20,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.service.dreams.DreamService;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -191,9 +190,9 @@ public class PhotoCarousel extends FrameLayout {
             int orientation = (width > height ? LANDSCAPE : PORTRAIT);
 
             destination.setImageBitmap(photo);
-            destination.setTag(R.id.photo_orientation, new Integer(orientation));
-            destination.setTag(R.id.photo_width, new Integer(width));
-            destination.setTag(R.id.photo_height, new Integer(height));
+            destination.setTag(R.id.photo_orientation, Integer.valueOf(orientation));
+            destination.setTag(R.id.photo_width, Integer.valueOf(width));
+            destination.setTag(R.id.photo_height, Integer.valueOf(height));
             setScaleType(destination);
 
             mBitmapStore.put(destination, photo);
@@ -249,8 +248,8 @@ public class PhotoCarousel extends FrameLayout {
         frontA = 1f - frontA;
         backA = 1f - backA;
 
-	// Don't rotate
-	frontY = backY = 0f;
+        // Don't rotate
+        frontY = backY = 0f;
 
         ViewPropertyAnimator frontAnim = mPanel[0].animate()
                 .rotationY(frontY)
@@ -286,7 +285,6 @@ public class PhotoCarousel extends FrameLayout {
 
         mOrientation = (mWidth > mHeight ? LANDSCAPE : PORTRAIT);
 
-        boolean init = mLongSide == 0;
         mLongSide = (int) Math.max(mWidth, mHeight);
         mShortSide = (int) Math.min(mWidth, mHeight);
 

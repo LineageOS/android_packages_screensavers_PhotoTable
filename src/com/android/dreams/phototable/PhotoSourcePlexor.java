@@ -17,12 +17,8 @@ package com.android.dreams.phototable;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.database.Cursor;
-import android.net.Uri;
 
-import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -34,7 +30,6 @@ public class PhotoSourcePlexor extends PhotoSource {
 
     private final PhotoSource mPicasaSource;
     private final PhotoSource mLocalSource;
-    private SharedPreferences mSettings;
 
     public PhotoSourcePlexor(Context context, SharedPreferences settings) {
         super(context, settings);
@@ -74,5 +69,15 @@ public class PhotoSourcePlexor extends PhotoSource {
     @Override
     protected InputStream getStream(ImageData data, int longSide) {
         return data.getStream(longSide);
+    }
+
+    @Override
+    protected ImageData naturalNext(ImageData current) {
+        return current.naturalNext();
+    }
+
+    @Override
+    protected ImageData naturalPrevious(ImageData current) {
+        return current.naturalPrevious();
     }
 }

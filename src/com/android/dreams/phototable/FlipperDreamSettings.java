@@ -15,16 +15,15 @@
  */
 package com.android.dreams.phototable;
 
+import android.app.ListActivity;
 import android.content.SharedPreferences;
 import android.database.DataSetObserver;
-import android.app.ListActivity;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.ListAdapter;
 
 import java.util.LinkedList;
 
@@ -32,6 +31,7 @@ import java.util.LinkedList;
  * Settings panel for photo flipping dream.
  */
 public class FlipperDreamSettings extends ListActivity {
+    @SuppressWarnings("unused")
     private static final String TAG = "FlipperDreamSettings";
     public static final String PREFS_NAME = FlipperDream.TAG;
 

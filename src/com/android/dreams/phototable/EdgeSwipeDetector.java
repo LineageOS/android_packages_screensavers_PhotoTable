@@ -23,6 +23,7 @@ import android.view.MotionEvent;
  * Detect and dispatch edge events.
  */
 public class EdgeSwipeDetector {
+    @SuppressWarnings("unused")
     private static final String TAG = "EdgeSwipeDetector";
     private float mEdgeSwipeGutter;
     private float mEdgeSwipeThreshold;
@@ -61,7 +62,7 @@ public class EdgeSwipeDetector {
                             * mEdgeSwipeThreshold;
                     if (event.getX() > enough) {
                         if (mTable.hasFocus()) {
-                            mTable.fling(mTable.getFocused());
+                            mTable.fling(mTable.getFocus());
                         } else if (mTable.hasSelection()) {
                             mTable.clearSelection();
                         }
