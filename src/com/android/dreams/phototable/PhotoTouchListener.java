@@ -34,7 +34,6 @@ public class PhotoTouchListener implements View.OnTouchListener {
     private final int mTapTimeout;
     private final PhotoTable mTable;
     private final float mBeta;
-    private final float mTableRatio;
     private final boolean mEnableFling;
     private final boolean mManualImageRotation;
     private long mLastEventTime;
@@ -52,16 +51,14 @@ public class PhotoTouchListener implements View.OnTouchListener {
     private int mA = INVALID_POINTER;
     private int mB = INVALID_POINTER;
     private float[] pts = new float[MAX_POINTER_COUNT];
-    private float[] tmp = new float[MAX_POINTER_COUNT];
 
     public PhotoTouchListener(Context context, PhotoTable table) {
         mTable = table;
         final ViewConfiguration configuration = ViewConfiguration.get(context);
         mTouchSlop = configuration.getScaledTouchSlop();
-        mTapTimeout = configuration.getTapTimeout();
+        mTapTimeout = ViewConfiguration.getTapTimeout();
         final Resources resources = context.getResources();
         mBeta = resources.getInteger(R.integer.table_damping) / 1000000f;
-        mTableRatio = resources.getInteger(R.integer.table_ratio) / 1000000f;
         mEnableFling = resources.getBoolean(R.bool.enable_fling);
         mManualImageRotation = resources.getBoolean(R.bool.enable_manual_image_rotation);
     }
@@ -184,16 +181,16 @@ public class PhotoTouchListener implements View.OnTouchListener {
                         mLastTouchY = y;
                     }
 
-                    if (mTable.getSelected() != target) {
-                        target.animate().cancel();
-
-                        target.setX((int) (mInitialTargetX + x - mInitialTouchX));
-                        target.setY((int) (mInitialTargetY + y - mInitialTouchY));
+                    if (!mTable.hasSelection()) {
+                        float rotation = target.getRotation();
                         if (mManualImageRotation && mB != INVALID_POINTER) {
                             float a = getAngle(target, ev);
-                            target.setRotation(
-                                    (int) (mInitialTargetA + a - mInitialTouchA));
+                            rotation = mInitialTargetA + a - mInitialTouchA;
                         }
+                        mTable.move(target,
+                                    mInitialTargetX + x - mInitialTouchX,
+                                    mInitialTargetY + y - mInitialTouchY,
+                                    rotation);
                     }
                 }
             }
@@ -210,13 +207,19 @@ public class PhotoTouchListener implements View.OnTouchListener {
                     }
                     double distance = Math.hypot(x0 - mInitialTouchX,
                                                  y0 - mInitialTouchY);
-                    if (mTable.getSelected() == target) {
-                        mTable.dropOnTable(target);
-                        mTable.clearSelection();
+                    if (mTable.hasSelection()) {
+                        if (distance < mTouchSlop) {
+                          mTable.clearSelection();
+                        } else {
+                          if ((x0 - mInitialTouchX) > 0f) {
+                            mTable.selectPrevious();
+                          } else {
+                            mTable.selectNext();
+                          }
+                        }
                     } else if ((ev.getEventTime() - mInitialTouchTime) < mTapTimeout &&
                                distance < mTouchSlop) {
                         // tap
-                        target.animate().cancel();
                         mTable.setSelection(target);
                     } else {
                         onFling(target, mDX, mDY);

@@ -51,7 +51,6 @@ public class AlbumSettings {
 
     public boolean isAlbumEnabled(String albumId) {
         synchronized (mEnabledAlbums) {
-            boolean isEnabled = mEnabledAlbums.contains(albumId);
             return mEnabledAlbums.contains(albumId);
         }
     }

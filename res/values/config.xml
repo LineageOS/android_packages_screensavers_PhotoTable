@@ -97,5 +97,8 @@
   <!-- Parts per million gain applied to generalized touch gestures. -->
   <integer name="generalized_touch_gain">2000000</integer>
 
+  <!-- Enable story mode. -->
+  <bool name="enable_story_mode">true</bool>
+
 </resources>
 

@@ -17,45 +17,55 @@ package com.android.dreams.phototable;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.util.Log;
 
 import java.io.InputStream;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Picks a random image from the local store.
  */
-public class 
-
-StockSource extends PhotoSource {
+public class StockSource extends PhotoSource {
     public static final String ALBUM_ID = "com.android.dreams.phototable.StockSource";
     private static final String TAG = "PhotoTable.StockSource";
     private static final int[] PHOTOS = { R.drawable.blank_photo };
+
+    private final ArrayList<ImageData> mImageCache;
+    private final ArrayList<AlbumData> mAlbumCache;
 
     private final ArrayList<ImageData> mImageList;
     private final ArrayList<AlbumData> mAlbumList;
 
     private final String mStockPhotoName;
-    private int mNextPosition;
 
     public StockSource(Context context, SharedPreferences settings) {
         super(context, settings, null);
         mSourceName = TAG;
         mStockPhotoName = mResources.getString(R.string.stock_photo_album_name, "Default Photos");
+        mImageCache = new ArrayList<ImageData>(PHOTOS.length);
+        mAlbumCache = new ArrayList<AlbumData>(1);
         mImageList = new ArrayList<ImageData>(PHOTOS.length);
         mAlbumList = new ArrayList<AlbumData>(1);
+
+        AlbumData albumData = new AlbumData();
+        albumData.id = ALBUM_ID;
+        albumData.account = mStockPhotoName;
+        albumData.title = mStockPhotoName;
+        mAlbumCache.add(albumData);
+
+        for (int i = 0; i < PHOTOS.length; i++) {
+            ImageData imageData = new ImageData();
+            imageData.id = Integer.toString(i);
+            mImageCache.add(imageData);
+        }
+
         fillQueue();
     }
 
     @Override
     public Collection<AlbumData> findAlbums() {
         if (mAlbumList.isEmpty()) {
-            AlbumData data = new AlbumData();
-            data.id = ALBUM_ID;
-            data.account = mStockPhotoName;
-            data.title = mStockPhotoName;
-            mAlbumList.add(data);
+            mAlbumList.addAll(mAlbumCache);
         }
         log(TAG, "returning a list of albums: " + mAlbumList.size());
         return mAlbumList;
@@ -64,11 +74,7 @@ StockSource extends PhotoSource {
     @Override
     protected Collection<ImageData> findImages(int howMany) {
         if (mImageList.isEmpty()) {
-            for (int i = 0; i < PHOTOS.length; i++) {
-                ImageData data = new ImageData();
-                data.id = Integer.toString(PHOTOS[i]);
-                mImageList.add(data);
-            }
+            mImageList.addAll(mImageCache);
         }
         return mImageList;
     }
@@ -78,13 +84,26 @@ StockSource extends PhotoSource {
         InputStream is = null;
         try {
             log(TAG, "opening:" + data.id);
-            is = mResources.openRawResource(Integer.valueOf(data.id));
+            int idx = Integer.valueOf(data.id);
+            is = mResources.openRawResource(PHOTOS[idx]);
         } catch (Exception ex) {
             log(TAG, ex.toString());
             is = null;
         }
 
         return is;
+    }
+
+    public ImageData naturalNext(ImageData current) {
+        int idx = Integer.valueOf(current.id);
+        idx = (idx + 1) % PHOTOS.length;
+        return mImageCache.get(idx);
+    }
+
+    public ImageData naturalPrevious(ImageData current) {
+        int idx = Integer.valueOf(current.id);
+        idx = (PHOTOS.length + idx - 1) % PHOTOS.length;
+        return mImageCache.get(idx);
     }
 }
 
