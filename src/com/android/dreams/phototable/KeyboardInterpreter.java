@@ -27,15 +27,17 @@ public class KeyboardInterpreter {
     private static final boolean DEBUG = false;
 
     private final PhotoTable mTable;
+    private final long mBounce;
+    private long mLastDeckNavigation;
 
     public KeyboardInterpreter(PhotoTable table) {
+        mBounce = 2000; // TODO: remove this once latencies in lower layers are removed.
         mTable = table;
     }
-
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         final View focus = mTable.getFocus();
         boolean consumed = true;
-
+        Log.d(TAG, "down: " + keyCode);
         if (mTable.hasSelection()) {
             switch (keyCode) {
             case KeyEvent.KEYCODE_ENTER:
@@ -44,6 +46,23 @@ public class KeyboardInterpreter {
                 mTable.setFocus(mTable.getSelection());
                 mTable.clearSelection();
                 break;
+
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_L:
+                if ((System.currentTimeMillis() - mLastDeckNavigation) > mBounce) {
+                    mLastDeckNavigation = System.currentTimeMillis();
+                    mTable.selectPrevious();
+                }
+                break;
+
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_H:
+                if ((System.currentTimeMillis() - mLastDeckNavigation) > mBounce) {
+                    mLastDeckNavigation = System.currentTimeMillis();
+                    mTable.selectNext();
+                }
+                break;
+
             default:
                 if (DEBUG) Log.d(TAG, "dropped unexpected: " + keyCode);
                 consumed = false;

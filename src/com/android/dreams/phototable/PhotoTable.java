@@ -94,6 +94,7 @@ public class PhotoTable extends FrameLayout {
     private final EdgeSwipeDetector mEdgeSwipeDetector;
     private final KeyboardInterpreter mKeyboardInterpreter;
     private final boolean mStoryModeEnabled;
+    private final long mPickUpDuration;
     private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
     private LoadNaturalSiblingTask mLoadOnDeckTasks[];
@@ -120,6 +121,7 @@ public class PhotoTable extends FrameLayout {
         mTableRatio = mResources.getInteger(R.integer.table_ratio) / 1000000f;
         mImageRotationLimit = (float) mResources.getInteger(R.integer.max_image_rotation);
         mThrowSpeed = mResources.getDimension(R.dimen.image_throw_speed);
+        mPickUpDuration = mResources.getInteger(R.integer.photo_pickup_duration);
         mThrowRotation = (float) mResources.getInteger(R.integer.image_throw_rotatioan);
         mTableCapacity = mResources.getInteger(R.integer.table_capacity);
         mRedealCount = mResources.getInteger(R.integer.redeal_count);
@@ -604,11 +606,6 @@ public class PhotoTable extends FrameLayout {
             float x = (getWidth() - photoWidth) / 2f;
             float y = (getHeight() - photoHeight) / 2f;
 
-            View selected = getSelection();
-            float selectedWidth = selected.getWidth();
-            float selectedHeight = selected.getHeight();
-            float selectedScale = Math.min(getHeight() / photoHeight, getWidth() / photoWidth);
-
             float offset = (((float) mWidth + scale * (photoWidth - 2f * mInset)) / 2f);
             x += (slot == NEXT? 1f : -1f) * offset;
 
@@ -619,7 +616,7 @@ public class PhotoTable extends FrameLayout {
                 .scaleY(scale)
                 .x(x)
                 .y(y)
-                .setDuration(1000)
+                .setDuration(mPickUpDuration)
                 .setInterpolator(new DecelerateInterpolator(2f));
         }
     }
@@ -784,10 +781,6 @@ public class PhotoTable extends FrameLayout {
         float dx = x - x0;
         float dy = y - y0;
 
-        float dist = (float) (Math.sqrt(dx * dx + dy * dy));
-        int duration = (int) (1000f * dist / 600f);
-        duration = Math.max(duration, 500);
-
         photo.setRotation(wrapAngle(photo.getRotation()));
 
         log("animate it");
@@ -799,7 +792,7 @@ public class PhotoTable extends FrameLayout {
                 .scaleY(scale)
                 .x(x)
                 .y(y)
-                .setDuration(duration)
+                .setDuration(mPickUpDuration)
                 .setInterpolator(new DecelerateInterpolator(2f))
                 .withEndAction(new Runnable() {
                         @Override
