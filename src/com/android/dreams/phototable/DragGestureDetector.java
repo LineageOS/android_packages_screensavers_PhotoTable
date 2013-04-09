@@ -17,19 +17,18 @@ package com.android.dreams.phototable;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.util.Log;
 import android.view.MotionEvent;
 
 /**
  * Detect and dispatch edge events.
  */
 public class DragGestureDetector {
+    @SuppressWarnings("unused")
     private static final String TAG = "DragGestureDetector";
 
     private final PhotoTable mTable;
     private final float mTouchGain;
 
-    private int mPointer;
     private float[] mLast;
     private float[] mCurrent;
     private boolean mDrag;
@@ -66,7 +65,6 @@ public class DragGestureDetector {
         int index = event.getActionIndex();
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                mPointer = event.getPointerId(index);
                 computeAveragePosition(event, mLast);
                 mDrag = false;
                 break;
@@ -104,7 +102,7 @@ public class DragGestureDetector {
     }
 
     private void move(MotionEvent event, boolean drop) {
-        mTable.move(mTable.getFocused(),
+        mTable.move(mTable.getFocus(),
                 mTouchGain * (mCurrent[0] - mLast[0]),
                 mTouchGain * (mCurrent[1] - mLast[1]),
                 drop);

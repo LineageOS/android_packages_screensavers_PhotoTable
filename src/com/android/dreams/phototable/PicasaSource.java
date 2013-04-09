@@ -26,7 +26,6 @@ import android.view.WindowManager;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +35,7 @@ import java.util.Set;
 /**
  * Loads images from Picasa.
  */
-public class PicasaSource extends PhotoSource {
+public class PicasaSource extends CursorPhotoSource {
     private static final String TAG = "PhotoTable.PicasaSource";
 
     private static final String PICASA_AUTHORITY =
@@ -61,7 +60,6 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_TYPE_KEY = "type";
     private static final String PICASA_TYPE_FULL_VALUE = "full";
     private static final String PICASA_TYPE_SCREEN_VALUE = "screennail";
-    private static final String PICASA_TYPE_THUMB_VALUE = "thumbnail";
     private static final String PICASA_TYPE_IMAGE_VALUE = "image";
     private static final String PICASA_POSTS_TYPE = "Buzz";
     private static final String PICASA_UPLOAD_TYPE = "InstantUpload";
@@ -90,6 +88,7 @@ public class PicasaSource extends PhotoSource {
         mConnectivityManager =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         mRecycleBin = new LinkedList<ImageData>();
+
         fillQueue();
         mDisplayLongSide = getDisplayLongSide();
     }
@@ -100,6 +99,65 @@ public class PicasaSource extends PhotoSource {
                 mContext.getSystemService(Context.WINDOW_SERVICE);
         wm.getDefaultDisplay().getMetrics(metrics);
         return Math.max(metrics.heightPixels, metrics.widthPixels);
+    }
+
+    @Override
+    protected void openCursor(ImageData data) {
+        log(TAG, "opening single album");
+
+        String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
+        String selection = PICASA_ALBUM_ID + " = '" + data.albumId + "'";
+
+        Uri.Builder picasaUriBuilder = new Uri.Builder()
+                .scheme("content")
+                .authority(PICASA_AUTHORITY)
+                .appendPath(PICASA_PHOTO_PATH);
+        data.cursor = mResolver.query(picasaUriBuilder.build(),
+                projection, selection, null, null);
+    }
+
+    @Override
+    protected void findPosition(ImageData data) {
+        if (data.position == UNINITIALIZED) {
+            if (data.cursor == null) {
+                openCursor(data);
+            }
+            if (data.cursor != null) {
+                int idIndex = data.cursor.getColumnIndex(PICASA_ID);
+                data.cursor.moveToPosition(-1);
+                while (data.position == -1 && data.cursor.moveToNext()) {
+                    String id = data.cursor.getString(idIndex);
+                    if (id != null && id.equals(data.id)) {
+                        data.position = data.cursor.getPosition();
+                    }
+                }
+                if (data.position == -1) {
+                    // oops!  The image isn't in this album. How did we get here?
+                    data.position = INVALID;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected ImageData unpackImageData(Cursor cursor, ImageData data) {
+        if (data == null) {
+            data = new ImageData();
+        }
+        int idIndex = cursor.getColumnIndex(PICASA_ID);
+        int urlIndex = cursor.getColumnIndex(PICASA_URL);
+        int bucketIndex = cursor.getColumnIndex(PICASA_ALBUM_ID);
+
+        data.id = cursor.getString(idIndex);
+        if (bucketIndex >= 0) {
+            data.albumId = cursor.getString(bucketIndex);
+        }
+        if (urlIndex >= 0) {
+            data.url = cursor.getString(urlIndex);
+        }
+        data.position = UNINITIALIZED;
+        data.cursor = null;
+        return data;
     }
 
     @Override
@@ -117,7 +175,6 @@ public class PicasaSource extends PhotoSource {
         }
 
         String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
-        boolean usePosts = false;
         LinkedList<String> albumIds = new LinkedList<String>();
         for (String id : getFoundAlbums()) {
             if (mSettings.isAlbumEnabled(id)) {
@@ -170,22 +227,13 @@ public class PicasaSource extends PhotoSource {
             cursor.moveToPosition(mLastPosition);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
-            int urlIndex = cursor.getColumnIndex(PICASA_URL);
-            int orientationIndex = cursor.getColumnIndex(PICASA_ROTATION);
-            int bucketIndex = cursor.getColumnIndex(PICASA_ALBUM_ID);
 
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
                 while (cursor.moveToNext()) {
                     if (idIndex >= 0) {
-                        ImageData data = new ImageData();
-                        data.id = cursor.getString(idIndex);
-
-                        if (urlIndex >= 0) {
-                            data.url = cursor.getString(urlIndex);
-                        }
-
+                        ImageData data = unpackImageData(cursor, null);
                         foundImages.offer(data);
                     }
                     mLastPosition = cursor.getPosition();
@@ -255,7 +303,6 @@ public class PicasaSource extends PhotoSource {
             cursor.moveToPosition(-1);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
-            int typeIndex = cursor.getColumnIndex(PICASA_ALBUM_TYPE);
 
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
@@ -397,9 +444,6 @@ public class PicasaSource extends PhotoSource {
             is = mResolver.openInputStream(photoUriBuilder.build());
         } catch (FileNotFoundException fnf) {
             log(TAG, "file not found: " + fnf);
-            is = null;
-        } catch (IOException ioe) {
-            log(TAG, "i/o exception: " + ioe);
             is = null;
         }
 
