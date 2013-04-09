@@ -94,16 +94,22 @@ public class StockSource extends PhotoSource {
         return is;
     }
 
+    @Override
     public ImageData naturalNext(ImageData current) {
         int idx = Integer.valueOf(current.id);
         idx = (idx + 1) % PHOTOS.length;
         return mImageCache.get(idx);
     }
 
+    @Override
     public ImageData naturalPrevious(ImageData current) {
         int idx = Integer.valueOf(current.id);
         idx = (PHOTOS.length + idx - 1) % PHOTOS.length;
         return mImageCache.get(idx);
+    }
+
+    @Override
+    protected void donePaging(ImageData current) {
     }
 }
 
