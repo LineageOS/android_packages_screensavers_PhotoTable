@@ -168,6 +168,11 @@ public class PhotoTable extends FrameLayout {
                 fadeAway(mOnDeck[slot], false);
                 mOnDeck[slot] = null;
             }
+            if (mLoadOnDeckTasks[slot] != null &&
+                    mLoadOnDeckTasks[slot].getStatus() != AsyncTask.Status.FINISHED) {
+                mLoadOnDeckTasks[slot].cancel(true);
+                mLoadOnDeckTasks[slot] = null;
+            }
         }
         mSelection = null;
     }
@@ -446,6 +451,7 @@ public class PhotoTable extends FrameLayout {
     private class LoadNaturalSiblingTask extends AsyncTask<View, Void, View> {
         private final BitmapFactory.Options mOptions;
         private final int mSlot;
+        private View mParent;
 
         public LoadNaturalSiblingTask (int slot) {
             mOptions = new BitmapFactory.Options();
@@ -457,7 +463,8 @@ public class PhotoTable extends FrameLayout {
         public View doInBackground(View... views) {
             log("load natural %s", (mSlot == NEXT ? "next" : "previous"));
             final PhotoTable table = PhotoTable.this;
-            final Bitmap current = getBitmap(views[0]);
+            mParent = views[0];
+            final Bitmap current = getBitmap(mParent);
             Bitmap decodedPhoto;
             if (mSlot == NEXT) {
                 decodedPhoto = table.mPhotoSource.naturalNext(current,
@@ -472,21 +479,26 @@ public class PhotoTable extends FrameLayout {
         @Override
         public void onPostExecute(View photo) {
             if (photo != null) {
-                log("natural %s being rendered", (mSlot == NEXT ? "next" : "previous"));
-                PhotoTable.this.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
-                    LayoutParams.WRAP_CONTENT));
-                float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
-                float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
-                photo.setX(mSlot == PREV ? -2 * width : mWidth + 2 * width);
-                photo.setY((mHeight - height) / 2);
-                photo.addOnLayoutChangeListener(new OnLayoutChangeListener() {
-                    @Override
-                    public void onLayoutChange(View v, int left, int top, int right, int bottom,
-                            int oldLeft, int oldTop, int oldRight, int oldBottom) {
-                        PhotoTable.this.placeOnDeck(v, mSlot);
-                        v.removeOnLayoutChangeListener(this);
-                    }
-                });
+                if (hasSelection() && getSelection() == mParent) {
+                    log("natural %s being rendered", (mSlot == NEXT ? "next" : "previous"));
+                    PhotoTable.this.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                            LayoutParams.WRAP_CONTENT));
+                    PhotoTable.this.mOnDeck[mSlot] = photo;
+                    float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
+                    float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
+                    photo.setX(mSlot == PREV ? -2 * width : mWidth + 2 * width);
+                    photo.setY((mHeight - height) / 2);
+                    photo.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                        @Override
+                        public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                            PhotoTable.this.placeOnDeck(v, mSlot);
+                            v.removeOnLayoutChangeListener(this);
+                        }
+                    });
+                } else {
+                   recycle(photo);
+                }
             } else {
                 log("natural, %s was null!", (mSlot == NEXT ? "next" : "previous"));
             }
