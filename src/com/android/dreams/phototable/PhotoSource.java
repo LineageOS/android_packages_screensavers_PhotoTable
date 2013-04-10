@@ -64,6 +64,9 @@ public abstract class PhotoSource {
         ImageData naturalPrevious() {
             return PhotoSource.this.naturalPrevious(this);
         }
+        public void donePaging() {
+            PhotoSource.this.donePaging(this);
+        }
     }
 
     public class AlbumData {
@@ -295,10 +298,25 @@ public abstract class PhotoSource {
         return image;
     }
 
+    public void donePaging(Bitmap current) {
+        ImageData data = mImageMap.get(current);
+        if (data != null) {
+            data.donePaging();
+        }
+    }
+
+    public void recycle(Bitmap trash) {
+        if (trash != null) {
+            mImageMap.remove(trash);
+            trash.recycle();
+        }
+    }
+
     protected abstract InputStream getStream(ImageData data, int longSide);
     protected abstract Collection<ImageData> findImages(int howMany);
     protected abstract ImageData naturalNext(ImageData current);
     protected abstract ImageData naturalPrevious(ImageData current);
+    protected abstract void donePaging(ImageData current);
 
     public abstract Collection<AlbumData> findAlbums();
 }

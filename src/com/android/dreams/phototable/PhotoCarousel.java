@@ -184,7 +184,6 @@ public class PhotoCarousel extends FrameLayout {
         Bitmap photo = mBitmapQueue.poll();
         if (photo != null) {
             ImageView destination = getBackface();
-            Bitmap old = mBitmapStore.get(destination);
             int width = photo.getWidth();
             int height = photo.getHeight();
             int orientation = (width > height ? LANDSCAPE : PORTRAIT);
@@ -195,11 +194,8 @@ public class PhotoCarousel extends FrameLayout {
             destination.setTag(R.id.photo_height, Integer.valueOf(height));
             setScaleType(destination);
 
-            mBitmapStore.put(destination, photo);
-
-            if (old != null) {
-                old.recycle();
-            }
+            Bitmap old = mBitmapStore.put(destination, photo);
+            mPhotoSource.recycle(old);
 
             return true;
         } else {

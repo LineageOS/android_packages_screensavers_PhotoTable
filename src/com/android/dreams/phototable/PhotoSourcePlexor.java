@@ -80,4 +80,9 @@ public class PhotoSourcePlexor extends PhotoSource {
     protected ImageData naturalPrevious(ImageData current) {
         return current.naturalPrevious();
     }
+
+    @Override
+    protected void donePaging(ImageData current) {
+        current.donePaging();
+    }
 }

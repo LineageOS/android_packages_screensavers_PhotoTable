@@ -39,10 +39,10 @@ public abstract class CursorPhotoSource extends PhotoSource {
 
     @Override
     protected ImageData naturalNext(ImageData current) {
-        if (current.cursor == null) {
+        if (current.cursor == null || current.cursor.isClosed()) {
             openCursor(current);
-            findPosition(current);
         }
+        findPosition(current);
         current.cursor.moveToPosition(current.position);
         current.cursor.moveToNext();
         ImageData data = null;
@@ -56,10 +56,10 @@ public abstract class CursorPhotoSource extends PhotoSource {
 
     @Override
     protected ImageData naturalPrevious(ImageData current) {
-        if (current.cursor == null) {
+        if (current.cursor == null || current.cursor.isClosed()) {
             openCursor(current);
-            findPosition(current);
         }
+        findPosition(current);
         current.cursor.moveToPosition(current.position);
         current.cursor.moveToPrevious();
         ImageData data = null;
@@ -69,6 +69,13 @@ public abstract class CursorPhotoSource extends PhotoSource {
             data.position = current.cursor.getPosition();
         }
         return data;
+    }
+
+    @Override
+    protected void donePaging(ImageData current) {
+        if (current.cursor != null && !current.cursor.isClosed()) {
+            current.cursor.close();
+        }
     }
 
     protected abstract void openCursor(ImageData data);

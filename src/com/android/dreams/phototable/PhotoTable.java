@@ -161,7 +161,9 @@ public class PhotoTable extends FrameLayout {
 
     public void clearSelection() {
         if (hasSelection()) {
-            dropOnTable(getSelection());
+            dropOnTable(mSelection);
+            mPhotoSource.donePaging(getBitmap(mSelection));
+            mSelection = null;
         }
         for (int slot = 0; slot < mOnDeck.length; slot++) {
             if (mOnDeck[slot] != null) {
@@ -174,7 +176,6 @@ public class PhotoTable extends FrameLayout {
                 mLoadOnDeckTasks[slot] = null;
             }
         }
-        mSelection = null;
     }
 
     public void setSelection(View selected) {
@@ -833,10 +834,7 @@ public class PhotoTable extends FrameLayout {
     private void recycle(View photo) {
         if (photo != null) {
             removeView(photo);
-            Bitmap bitmap = getBitmap(photo);
-            if (bitmap != null) {
-                bitmap.recycle();
-            }
+            mPhotoSource.recycle(getBitmap(photo));
         }
     }
 
