@@ -65,14 +65,20 @@ public class PhotoTable extends FrameLayout {
         }
     }
 
-    private static final int MAX_SELECTION_TIME = 10000;
-    private static final int MAX_FOCUS_TIME = 5000;
+    class SelectionReaper implements Runnable {
+        @Override
+        public void run() {
+            PhotoTable.this.clearSelection();
+        }
+    }
+
     private static final int NEXT = 1;
     private static final int PREV = 0;
     private static Random sRNG = new Random();
 
     private final Launcher mLauncher;
     private final FocusReaper mFocusReaper;
+    private final SelectionReaper mSelectionReaper;
     private final LinkedList<View> mOnTable;
     private final int mDropPeriod;
     private final int mFastDropPeriod;
@@ -95,6 +101,9 @@ public class PhotoTable extends FrameLayout {
     private final KeyboardInterpreter mKeyboardInterpreter;
     private final boolean mStoryModeEnabled;
     private final long mPickUpDuration;
+    private final int mMaxSelectionTime;
+    private final int mMaxFocusTime;
+
     private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
     private LoadNaturalSiblingTask mLoadOnDeckTasks[];
@@ -106,7 +115,6 @@ public class PhotoTable extends FrameLayout {
     private int mHeight;
     private View mSelection;
     private View mOnDeck[];
-    private long mSelectionTime;
     private View mFocus;
     private int mHighlightColor;
 
@@ -128,6 +136,8 @@ public class PhotoTable extends FrameLayout {
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
         mStoryModeEnabled = mResources.getBoolean(R.bool.enable_story_mode);
         mHighlightColor = mResources.getColor(R.color.highlight_color);
+        mMaxSelectionTime = mResources.getInteger(R.integer.max_selection_time);
+        mMaxFocusTime = mResources.getInteger(R.integer.max_focus_time);
         mThrowInterpolator = new SoftLandingInterpolator(
                 mResources.getInteger(R.integer.soft_landing_time) / 1000000f,
                 mResources.getInteger(R.integer.soft_landing_distance) / 1000000f);
@@ -138,6 +148,7 @@ public class PhotoTable extends FrameLayout {
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
         mLauncher = new Launcher();
         mFocusReaper = new FocusReaper();
+        mSelectionReaper = new SelectionReaper();
         mDragGestureDetector = new DragGestureDetector(context, this);
         mEdgeSwipeDetector = new EdgeSwipeDetector(context, this);
         mKeyboardInterpreter = new KeyboardInterpreter(this);
@@ -216,7 +227,7 @@ public class PhotoTable extends FrameLayout {
 
     private void promoteSelection() {
         if (hasSelection()) {
-            mSelectionTime = System.currentTimeMillis();
+            scheduleSelectionReaper(mMaxSelectionTime);
             mSelection.animate().cancel();
             mSelection.setAlpha(1f);
             moveToTopOfPile(mSelection);
@@ -261,7 +272,7 @@ public class PhotoTable extends FrameLayout {
         mFocus = focus;
         moveToTopOfPile(focus);
         setHighlight(focus, true);
-        scheduleFocusReaper(MAX_FOCUS_TIME);
+        scheduleFocusReaper(mMaxFocusTime);
     }
 
     static float lerp(float a, float b, float f) {
@@ -560,10 +571,7 @@ public class PhotoTable extends FrameLayout {
     public void launch() {
         log("launching");
         setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
-        if (hasSelection() &&
-                (System.currentTimeMillis() - mSelectionTime) > MAX_SELECTION_TIME) {
-            clearSelection();
-        } else {
+        if (!hasSelection()) {
             log("inflate it");
             if (mPhotoLaunchTask == null ||
                 mPhotoLaunchTask.getStatus() == AsyncTask.Status.FINISHED) {
@@ -853,13 +861,21 @@ public class PhotoTable extends FrameLayout {
         if (!mStarted) {
             log("kick it");
             mStarted = true;
-            scheduleNext(mDropPeriod);
-            launch();
+            scheduleNext(0);
         }
     }
 
+    public void refreshSelection() {
+        scheduleSelectionReaper(mMaxFocusTime);
+    }
+
+    public void scheduleSelectionReaper(int delay) {
+        removeCallbacks(mSelectionReaper);
+        postDelayed(mSelectionReaper, delay);
+    }
+
     public void refreshFocus() {
-        scheduleFocusReaper(MAX_FOCUS_TIME);
+        scheduleFocusReaper(mMaxFocusTime);
     }
 
     public void scheduleFocusReaper(int delay) {

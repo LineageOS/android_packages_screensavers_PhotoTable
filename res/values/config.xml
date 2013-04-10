@@ -103,5 +103,11 @@
   <!-- Duration ion milliseconds for the pickup animation. -->
   <integer name="photo_pickup_duration">1000</integer>
 
+  <!-- Milliseconds that the selection will remain without user interaction. -->
+  <integer name="max_selection_time">30000</integer>
+
+  <!-- Milliseconds that the focus will remain without user interaction. -->
+  <integer name="max_focus_time">5000</integer>
+
 </resources>
 
