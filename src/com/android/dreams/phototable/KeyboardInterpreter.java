@@ -37,7 +37,6 @@ public class KeyboardInterpreter {
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         final View focus = mTable.getFocus();
         boolean consumed = true;
-        Log.d(TAG, "down: " + keyCode);
         if (mTable.hasSelection()) {
             switch (keyCode) {
             case KeyEvent.KEYCODE_ENTER:
