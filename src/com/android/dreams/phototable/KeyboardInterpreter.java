@@ -65,6 +65,8 @@ public class KeyboardInterpreter {
             default:
                 if (DEBUG) Log.d(TAG, "dropped unexpected: " + keyCode);
                 consumed = false;
+                // give the user some more time to figure it out
+                mTable.refreshSelection();
                 break;
             }
         } else {
@@ -109,6 +111,8 @@ public class KeyboardInterpreter {
             default:
                 if (DEBUG) Log.d(TAG, "dropped unexpected: " + keyCode);
                 consumed = false;
+                // give the user some more time to figure it out
+                mTable.refreshFocus();
                 break;
             }
         }
