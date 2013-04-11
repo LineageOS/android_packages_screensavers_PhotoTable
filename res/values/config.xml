@@ -100,8 +100,8 @@
   <!-- Enable story mode. -->
   <bool name="enable_story_mode">true</bool>
 
-  <!-- Duration ion milliseconds for the pickup animation. -->
-  <integer name="photo_pickup_duration">2000</integer>
+  <!-- Duration in milliseconds for the pickup animation. -->
+  <integer name="photo_pickup_duration">1000</integer>
 
   <!-- Milliseconds that the selection will remain without user interaction. -->
   <integer name="max_selection_time">30000</integer>

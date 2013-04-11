@@ -18,13 +18,28 @@
    android:layout_width="match_parent"
    android:layout_height="match_parent"
    >
+
   <com.android.dreams.phototable.PhotoTable
-     android:background="@+drawable/table"
-     android:id="@+id/table"
-     android:layout_width="match_parent"
-     android:layout_height="match_parent"
-     android:focusable="true"
-     />
+      android:id="@+id/table"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:background="@+drawable/table"
+      android:focusable="true" >
+
+     <FrameLayout
+         android:id="@+id/stageleft"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+         />
+
+     <FrameLayout
+         android:id="@+id/background"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+         android:layerType="hardware"
+         />
+
+     </com.android.dreams.phototable.PhotoTable>
   <!-- View
      android:background="@+drawable/vignette_br"
      android:layout_gravity="bottom|right"
