@@ -15,6 +15,9 @@
  */
 package com.android.dreams.phototable;
 
+import android.animation.Animator;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -34,6 +37,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
+import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
@@ -41,6 +45,7 @@ import android.widget.ImageView;
 
 import java.util.Formatter;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 /**
@@ -174,6 +179,9 @@ public class PhotoTable extends FrameLayout {
         if (hasSelection()) {
             dropOnTable(mSelection);
             mPhotoSource.donePaging(getBitmap(mSelection));
+            if (mStoryModeEnabled) {
+                fadeInExcept(mSelection);
+            }
             mSelection = null;
         }
         for (int slot = 0; slot < mOnDeck.length; slot++) {
@@ -194,6 +202,9 @@ public class PhotoTable extends FrameLayout {
             clearSelection();
             mSelection = selected;
             promoteSelection();
+            if (mStoryModeEnabled) {
+                fadeOutExcept(mSelection);
+            }
         }
     }
 
@@ -581,6 +592,44 @@ public class PhotoTable extends FrameLayout {
         }
     }
 
+    /** De-emphasize the other photos on the table. */
+    public void fadeOutExcept(final View photo) {
+        List<Animator> animations = new LinkedList<Animator>();
+        for (View background: mOnTable) {
+            if (background != photo) {
+                // fade out to transparent.
+                background.animate().cancel();
+                animations.add(ObjectAnimator.ofFloat(background, "alpha", 0f));
+            }
+        }
+        if (animations.size() > 0) {
+            AnimatorSet set = new AnimatorSet();
+            set.playTogether(animations);
+            set.setDuration(mPickUpDuration);
+            set.start();
+        }
+    }
+
+
+    /** Return the other photos to foreground status. */
+    public void fadeInExcept(final View photo) {
+        List<Animator> animations = new LinkedList<Animator>();
+        for (View background: mOnTable) {
+            if (background != photo) {
+                // fade back to full opacity.
+                background.animate().cancel();
+                animations.add(ObjectAnimator.ofFloat(background, "alpha", 1f));
+            }
+        }
+        if (animations.size() > 0) {
+            AnimatorSet set = new AnimatorSet();
+            set.playTogether(animations);
+            set.setDuration(mPickUpDuration);
+            set.start();
+        }
+    }
+
+
     /** Dispose of the photo gracefully, in case we can see some of it. */
     public void fadeAway(final View photo, final boolean replace) {
         // fade out of view
@@ -589,7 +638,7 @@ public class PhotoTable extends FrameLayout {
         photo.animate()
                 .withLayer()
                 .alpha(0f)
-                .setDuration(1000)
+                .setDuration(mPickUpDuration)
                 .withEndAction(new Runnable() {
                         @Override
                         public void run() {
@@ -797,11 +846,6 @@ public class PhotoTable extends FrameLayout {
         float x = (getWidth() - photoWidth) / 2f;
         float y = (getHeight() - photoHeight) / 2f;
 
-        float x0 = photo.getX();
-        float y0 = photo.getY();
-        float dx = x - x0;
-        float dy = y - y0;
-
         photo.setRotation(wrapAngle(photo.getRotation()));
 
         log("animate it");
@@ -809,6 +853,7 @@ public class PhotoTable extends FrameLayout {
         photo.animate()
                 .rotation(0f)
                 .rotationY(0f)
+                .alpha(1f)
                 .scaleX(scale)
                 .scaleY(scale)
                 .x(x)
