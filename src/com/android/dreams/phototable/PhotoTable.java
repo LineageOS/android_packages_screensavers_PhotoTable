@@ -15,9 +15,6 @@
  */
 package com.android.dreams.phototable;
 
-import android.animation.Animator;
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -36,17 +33,20 @@ import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewPropertyAnimator;
-import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * A surface where photos sit.
@@ -97,7 +97,7 @@ public class PhotoTable extends FrameLayout {
     private final int mTableCapacity;
     private final int mRedealCount;
     private final int mInset;
-    private final PhotoSourcePlexor mPhotoSource;
+    private final PhotoSource mPhotoSource;
     private final Resources mResources;
     private final Interpolator mThrowInterpolator;
     private final Interpolator mDropInterpolator;
@@ -108,6 +108,7 @@ public class PhotoTable extends FrameLayout {
     private final long mPickUpDuration;
     private final int mMaxSelectionTime;
     private final int mMaxFocusTime;
+    private final List<View> mAnimating;
 
     private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
@@ -122,6 +123,8 @@ public class PhotoTable extends FrameLayout {
     private View mOnDeck[];
     private View mFocus;
     private int mHighlightColor;
+    private ViewGroup mBackground;
+    private ViewGroup mStageLeft;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -151,6 +154,7 @@ public class PhotoTable extends FrameLayout {
         mOnTable = new LinkedList<View>();
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
+        mAnimating = new ArrayList<View>();
         mLauncher = new Launcher();
         mFocusReaper = new FocusReaper();
         mSelectionReaper = new SelectionReaper();
@@ -162,6 +166,11 @@ public class PhotoTable extends FrameLayout {
         mStarted = false;
     }
 
+    @Override
+    public void onFinishInflate() {
+        mBackground = (ViewGroup) findViewById(R.id.background);
+        mStageLeft = (ViewGroup) findViewById(R.id.stageleft);
+    }
 
     public void setDream(DreamService dream) {
         mDream = dream;
@@ -180,7 +189,7 @@ public class PhotoTable extends FrameLayout {
             dropOnTable(mSelection);
             mPhotoSource.donePaging(getBitmap(mSelection));
             if (mStoryModeEnabled) {
-                fadeInExcept(mSelection);
+                fadeInBackground(mSelection);
             }
             mSelection = null;
         }
@@ -203,7 +212,7 @@ public class PhotoTable extends FrameLayout {
             mSelection = selected;
             promoteSelection();
             if (mStoryModeEnabled) {
-                fadeOutExcept(mSelection);
+                fadeOutBackground(mSelection);
             }
         }
     }
@@ -443,7 +452,7 @@ public class PhotoTable extends FrameLayout {
 
     /** Put a nice border on the bitmap. */
     private static View applyFrame(final PhotoTable table, final BitmapFactory.Options options,
-            final Bitmap decodedPhoto) {
+            Bitmap decodedPhoto) {
         LayoutInflater inflater = (LayoutInflater) table.getContext()
             .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View photo = inflater.inflate(R.layout.photo, null);
@@ -593,47 +602,38 @@ public class PhotoTable extends FrameLayout {
     }
 
     /** De-emphasize the other photos on the table. */
-    public void fadeOutExcept(final View photo) {
-        List<Animator> animations = new LinkedList<Animator>();
-        for (View background: mOnTable) {
-            if (background != photo) {
-                // fade out to transparent.
-                background.animate().cancel();
-                animations.add(ObjectAnimator.ofFloat(background, "alpha", 0f));
-            }
-        }
-        if (animations.size() > 0) {
-            AnimatorSet set = new AnimatorSet();
-            set.playTogether(animations);
-            set.setDuration(mPickUpDuration);
-            set.start();
-        }
+    public void fadeOutBackground(final View photo) {
+        mBackground.animate()
+        .withLayer()
+        .setDuration(mPickUpDuration)
+        .alpha(0f);
     }
 
 
     /** Return the other photos to foreground status. */
-    public void fadeInExcept(final View photo) {
-        List<Animator> animations = new LinkedList<Animator>();
-        for (View background: mOnTable) {
-            if (background != photo) {
-                // fade back to full opacity.
-                background.animate().cancel();
-                animations.add(ObjectAnimator.ofFloat(background, "alpha", 1f));
+    public void fadeInBackground(final View photo) {
+        mAnimating.add(photo);
+        mBackground.animate()
+        .withLayer()
+        .setDuration(mPickUpDuration)
+        .alpha(1f)
+        .withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                mAnimating.remove(photo);
+                if (!mAnimating.contains(photo)) {
+                    moveToBackground(photo);
+                }
             }
-        }
-        if (animations.size() > 0) {
-            AnimatorSet set = new AnimatorSet();
-            set.playTogether(animations);
-            set.setDuration(mPickUpDuration);
-            set.start();
-        }
+        });
     }
-
 
     /** Dispose of the photo gracefully, in case we can see some of it. */
     public void fadeAway(final View photo, final boolean replace) {
         // fade out of view
         mOnTable.remove(photo);
+        exitStageLeft(photo);
+        photo.setOnTouchListener(null);
         photo.animate().cancel();
         photo.animate()
                 .withLayer()
@@ -645,6 +645,7 @@ public class PhotoTable extends FrameLayout {
                             if (photo == getFocus()) {
                                 clearFocus();
                             }
+                            mStageLeft.removeView(photo);
                             recycle(photo);
                             if (replace) {
                                 scheduleNext(mNowDropDelay);
@@ -656,7 +657,11 @@ public class PhotoTable extends FrameLayout {
     /** Visually on top, and also freshest, for the purposes of timeouts. */
     public void moveToTopOfPile(View photo) {
         // make this photo the last to be removed.
-        bringChildToFront(photo);
+        if (isInBackground(photo)) {
+           mBackground.bringChildToFront(photo);
+        } else {
+            bringChildToFront(photo);
+        }
         invalidate();
         mOnTable.remove(photo);
         mOnTable.offer(photo);
@@ -680,6 +685,7 @@ public class PhotoTable extends FrameLayout {
             x += (slot == NEXT? 1f : -1f) * offset;
 
             photo.animate()
+                .withLayer()
                 .rotation(0f)
                 .rotationY(0f)
                 .scaleX(scale)
@@ -752,7 +758,9 @@ public class PhotoTable extends FrameLayout {
                 moveFocus(photo, 180f);
             }
         }
+        moveToForeground(photo);
         ViewPropertyAnimator animator = photo.animate()
+                .withLayer()
                 .xBy(dx)
                 .yBy(dy)
                 .setDuration(duration)
@@ -816,14 +824,55 @@ public class PhotoTable extends FrameLayout {
 
         log("animate it");
         // toss onto table
+        mAnimating.add(photo);
         photo.animate()
-                .scaleX(mTableRatio / mImageRatio)
-                .scaleY(mTableRatio / mImageRatio)
-                .rotation(angle)
-                .x(x)
-                .y(y)
-                .setDuration(duration)
-                .setInterpolator(interpolator);
+            .withLayer()
+            .scaleX(mTableRatio / mImageRatio)
+            .scaleY(mTableRatio / mImageRatio)
+            .rotation(angle)
+            .x(x)
+            .y(y)
+            .setDuration(duration)
+            .setInterpolator(interpolator)
+            .withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    mAnimating.remove(photo);
+                    if (!mAnimating.contains(photo)) {
+                        moveToBackground(photo);
+                    }
+                }
+            });
+    }
+
+    private void moveToBackground(View photo) {
+        if (!isInBackground(photo)) {
+            removeView(photo);
+            mBackground.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private void exitStageLeft(View photo) {
+        if (isInBackground(photo)) {
+            mBackground.removeView(photo);
+        } else {
+            removeView(photo);
+        }
+        mStageLeft.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT));
+    }
+
+    private void moveToForeground(View photo) {
+        if (isInBackground(photo)) {
+            mBackground.removeView(photo);
+            addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private boolean isInBackground(View photo) {
+        return mBackground.indexOfChild(photo) != -1;
     }
 
     /** wrap all orientations to the interval [-180, 180). */
@@ -850,22 +899,24 @@ public class PhotoTable extends FrameLayout {
 
         log("animate it");
         // lift up to the glass for a good look
+        moveToForeground(photo);
         photo.animate()
-                .rotation(0f)
-                .rotationY(0f)
-                .alpha(1f)
-                .scaleX(scale)
-                .scaleY(scale)
-                .x(x)
-                .y(y)
-                .setDuration(mPickUpDuration)
-                .setInterpolator(new DecelerateInterpolator(2f))
-                .withEndAction(new Runnable() {
-                        @Override
-                            public void run() {
-                            log("endtimes: %f", photo.getX());
-                        }
-                    });
+            .withLayer()
+            .rotation(0f)
+            .rotationY(0f)
+            .alpha(1f)
+            .scaleX(scale)
+            .scaleY(scale)
+            .x(x)
+            .y(y)
+            .setDuration(mPickUpDuration)
+            .setInterpolator(new DecelerateInterpolator(2f))
+            .withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    log("endtimes: %f", photo.getX());
+                }
+            });
     }
 
     private Bitmap getBitmap(View photo) {
