@@ -20,7 +20,8 @@
   <!-- Milliseconds to wait before the next fast drop.-->
   <integer name="fast_drop">5000</integer>
 
-  <!-- Parts per million ratio between image size and screen size. -->
-  <integer name="image_ratio">500000</integer>
+  <!-- Duration in milliseconds for the pickup animation. -->
+  <integer name="photo_pickup_duration">1500</integer>
+
 </resources>
 

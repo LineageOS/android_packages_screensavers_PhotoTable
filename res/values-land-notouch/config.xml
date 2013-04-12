@@ -16,9 +16,15 @@
 <resources>
 
     <!-- Maximum number of photos to leave on the table. -->
-    <integer name="table_capacity">8</integer>
+    <integer name="table_capacity">6</integer>
 
     <!-- Number of images to discard at a time. -->
-    <integer name="redeal_count">4</integer>
+    <integer name="redeal_count">2</integer>
+
+    <!-- Parts per million ratio between image size on the table and screen size. -->
+    <integer name="table_ratio">333333</integer>
+
+    <!-- Duration in milliseconds for the pickup animation. -->
+    <integer name="photo_pickup_duration">1500</integer>
 
 </resources>
