@@ -19,6 +19,7 @@ import android.app.ListActivity;
 import android.content.SharedPreferences;
 import android.database.DataSetObserver;
 import android.os.AsyncTask;
+import android.os.AsyncTask.Status;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -40,6 +41,7 @@ public class FlipperDreamSettings extends ListActivity {
     private PhotoSourcePlexor mPhotoSource;
     private SectionedAlbumDataAdapter mAdapter;
     private MenuItem mSelectAll;
+    private AsyncTask<Void, Void, Void> mLoadingTask;
 
     @Override
     protected void onCreate(Bundle savedInstanceState){
@@ -48,11 +50,20 @@ public class FlipperDreamSettings extends ListActivity {
         init();
     }
 
+    @Override
+    protected void onResume(){
+        super.onResume();
+        init();
+    }
+
     protected void init() {
         mPhotoSource = new PhotoSourcePlexor(this, mSettings);
         setContentView(R.layout.settingslist);
-
-        new AsyncTask<Void, Void, Void>() {
+        if (mLoadingTask != null && mLoadingTask.getStatus() != Status.FINISHED) {
+            mLoadingTask.cancel(true);
+        }
+        showApology(false);
+        mLoadingTask = new AsyncTask<Void, Void, Void>() {
             @Override
             public Void doInBackground(Void... unused) {
                 mAdapter = new SectionedAlbumDataAdapter(FlipperDreamSettings.this,
@@ -78,11 +89,10 @@ public class FlipperDreamSettings extends ListActivity {
                setListAdapter(mAdapter);
                getListView().setItemsCanFocus(true);
                updateActionItem();
-               if (mAdapter.getCount() == 0) {
-                   findViewById(android.R.id.empty).setVisibility(View.GONE);
-               }
+               showApology(mAdapter.getCount() == 0);
            }
-        }.execute();
+        };
+        mLoadingTask.execute();
     }
 
     @Override
@@ -102,6 +112,15 @@ public class FlipperDreamSettings extends ListActivity {
             return true;
         default:
             return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void showApology(boolean apologize) {
+        View empty = findViewById(R.id.spinner);
+        View sorry = findViewById(R.id.sorry);
+        if (empty != null && sorry != null) {
+            empty.setVisibility(apologize ? View.GONE : View.VISIBLE);
+            sorry.setVisibility(apologize ? View.VISIBLE : View.GONE);
         }
     }
 
