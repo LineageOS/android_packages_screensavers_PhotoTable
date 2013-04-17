@@ -22,11 +22,28 @@
          android:paddingRight="16dp"
          />
 
-    <ProgressBar android:id="@android:id/empty"
-         style="?android:attr/progressBarStyleLarge"
-         android:layout_width="wrap_content"
-         android:layout_height="wrap_content"
-         android:layout_gravity="center"
-         />
+    <FrameLayout
+        android:id="@android:id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
 
+        <ProgressBar
+            android:id="@+id/spinner"
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center" />
+
+        <TextView
+            android:id="@+id/sorry"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.5"
+            android:gravity="center_vertical|center_horizontal"
+            android:text="@string/no_photos"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:visibility="gone" />
+
+    </FrameLayout>
 </merge>
