@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"Izbrana ni nobena fotografija."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Izberi vse"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Počisti vse"</string>
+    <string name="no_photos" msgid="4262083523147564199">"V napravi ni fotografij."</string>
 </resources>

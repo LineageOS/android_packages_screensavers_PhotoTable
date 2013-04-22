@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"Tiada foto dipilih."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Pilih Semua"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Nyahpilih Semua"</string>
+    <string name="no_photos" msgid="4262083523147564199">"Tiada foto pada peranti."</string>
 </resources>

@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"कोई फ़ोटो नहीं चुना गया."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"सभी को चुनें"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"सभी अचयनित करें"</string>
+    <string name="no_photos" msgid="4262083523147564199">"उपकरण पर कोई फ़ोटो नहीं है."</string>
 </resources>

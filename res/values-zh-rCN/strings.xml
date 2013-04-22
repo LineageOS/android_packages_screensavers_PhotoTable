@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"未选择任何照片。"</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"全选"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"全部不选"</string>
+    <string name="no_photos" msgid="4262083523147564199">"设备上没有任何照片。"</string>
 </resources>

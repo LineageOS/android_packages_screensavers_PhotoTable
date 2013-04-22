@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"Aucune photo sélectionnée."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Tout sélectionner"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Tout désélectionner"</string>
+    <string name="no_photos" msgid="4262083523147564199">"Aucune photo sur l\'appareil"</string>
 </resources>

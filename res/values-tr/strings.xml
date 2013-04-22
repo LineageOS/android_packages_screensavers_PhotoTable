@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"Seçili fotoğraf yok."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Tümünü Seç"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Hiçbirini Seçme"</string>
+    <string name="no_photos" msgid="4262083523147564199">"Cihazda hiç fotoğraf yok."</string>
 </resources>

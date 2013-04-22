@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"선택한 사진이 없습니다."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"모두 선택"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"모두 선택취소"</string>
+    <string name="no_photos" msgid="4262083523147564199">"기기에 사진이 없습니다."</string>
 </resources>

@@ -27,4 +27,5 @@
     <string name="need_to_configure" msgid="1269102638159389032">"Ei valittuja kuvia."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Valitse kaikki"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Poista kaikki valinnat"</string>
+    <string name="no_photos" msgid="4262083523147564199">"Laitteella ei ole kuvia."</string>
 </resources>
