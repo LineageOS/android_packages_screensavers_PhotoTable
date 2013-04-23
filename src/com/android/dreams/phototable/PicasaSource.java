@@ -63,6 +63,7 @@ public class PicasaSource extends CursorPhotoSource {
     private static final String PICASA_TYPE_IMAGE_VALUE = "image";
     private static final String PICASA_POSTS_TYPE = "Buzz";
     private static final String PICASA_UPLOAD_TYPE = "InstantUpload";
+    private static final String PICASA_UPLOADAUTO_TYPE = "InstantUploadAuto";
 
     private final int mMaxPostAblums;
     private final String mPostsAlbumName;
@@ -357,7 +358,8 @@ public class PicasaSource extends CursorPhotoSource {
                     String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
                     String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
                     boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
-                    boolean isUpload = (typeIndex >= 0 && PICASA_UPLOAD_TYPE.equals(type));
+                    boolean isUpload = (typeIndex >= 0 &&
+                            (PICASA_UPLOAD_TYPE.equals(type) || PICASA_UPLOADAUTO_TYPE.equals(type)));
 
                     String account = accounts.get(user);
                     if (account == null) {
