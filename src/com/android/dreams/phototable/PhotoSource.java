@@ -44,7 +44,7 @@ public abstract class PhotoSource {
 
     // This should be large enough for BitmapFactory to decode the header so
     // that we can mark and reset the input stream to avoid duplicate network i/o
-    private static final int BUFFER_SIZE = 128 * 1024;
+    private static final int BUFFER_SIZE = 32 * 1024;
 
     public class ImageData {
         public String id;
@@ -184,7 +184,15 @@ public abstract class PhotoSource {
                 }
 
                 log(TAG, "decoding with inSampleSize " +  options.inSampleSize);
-                bis.reset();
+                try {
+                    bis.reset();
+                } catch (IOException ioe) {
+                    // start over, something went wrong and we read too far into the image.
+                    bis.close();
+                    is = data.getStream(longSide);
+                    bis = new BufferedInputStream(is);
+                    log(TAG, "resetting the stream");
+                }
                 options.inJustDecodeBounds = false;
                 image = BitmapFactory.decodeStream(bis, null, options);
                 rawLongSide = Math.max(options.outWidth, options.outHeight);
