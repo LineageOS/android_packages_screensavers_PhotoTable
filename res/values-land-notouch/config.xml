@@ -27,4 +27,6 @@
     <!-- Duration in milliseconds for the pickup animation. -->
     <integer name="photo_pickup_duration">1500</integer>
 
+    <!-- Enable hardware layer optimization (interferes with dragging). -->
+    <bool name="enable_background_optimization">true</bool>
 </resources>

@@ -105,6 +105,7 @@ public class PhotoTable extends FrameLayout {
     private final EdgeSwipeDetector mEdgeSwipeDetector;
     private final KeyboardInterpreter mKeyboardInterpreter;
     private final boolean mStoryModeEnabled;
+    private final boolean mBackgroudOptimization;
     private final long mPickUpDuration;
     private final int mMaxSelectionTime;
     private final int mMaxFocusTime;
@@ -125,6 +126,7 @@ public class PhotoTable extends FrameLayout {
     private int mHighlightColor;
     private ViewGroup mBackground;
     private ViewGroup mStageLeft;
+    private View mScrim;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -143,6 +145,7 @@ public class PhotoTable extends FrameLayout {
         mRedealCount = mResources.getInteger(R.integer.redeal_count);
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
         mStoryModeEnabled = mResources.getBoolean(R.bool.enable_story_mode);
+        mBackgroudOptimization = mResources.getBoolean(R.bool.enable_background_optimization);
         mHighlightColor = mResources.getColor(R.color.highlight_color);
         mMaxSelectionTime = mResources.getInteger(R.integer.max_selection_time);
         mMaxFocusTime = mResources.getInteger(R.integer.max_focus_time);
@@ -170,6 +173,7 @@ public class PhotoTable extends FrameLayout {
     public void onFinishInflate() {
         mBackground = (ViewGroup) findViewById(R.id.background);
         mStageLeft = (ViewGroup) findViewById(R.id.stageleft);
+        mScrim = findViewById(R.id.scrim);
     }
 
     public void setDream(DreamService dream) {
@@ -603,29 +607,55 @@ public class PhotoTable extends FrameLayout {
 
     /** De-emphasize the other photos on the table. */
     public void fadeOutBackground(final View photo) {
-        mBackground.animate()
-        .withLayer()
-        .setDuration(mPickUpDuration)
-        .alpha(0f);
+        if (mBackgroudOptimization) {
+            mBackground.animate()
+                    .withLayer()
+                    .setDuration(mPickUpDuration)
+                    .alpha(0f);
+        } else {
+            mScrim.setAlpha(0f);
+            mScrim.setVisibility(View.VISIBLE);
+            bringChildToFront(mScrim);
+            bringChildToFront(photo);
+            mScrim.animate()
+                    .withLayer()
+                    .setDuration(mPickUpDuration)
+                    .alpha(1f);
+        }
     }
 
 
     /** Return the other photos to foreground status. */
     public void fadeInBackground(final View photo) {
-        mAnimating.add(photo);
-        mBackground.animate()
-        .withLayer()
-        .setDuration(mPickUpDuration)
-        .alpha(1f)
-        .withEndAction(new Runnable() {
-            @Override
-            public void run() {
-                mAnimating.remove(photo);
-                if (!mAnimating.contains(photo)) {
-                    moveToBackground(photo);
-                }
-            }
-        });
+        if (mBackgroudOptimization) {
+            mAnimating.add(photo);
+            mBackground.animate()
+                    .withLayer()
+                    .setDuration(mPickUpDuration)
+                    .alpha(1f)
+                    .withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAnimating.remove(photo);
+                            if (!mAnimating.contains(photo)) {
+                                moveToBackground(photo);
+                            }
+                        }
+                    });
+        } else {
+            bringChildToFront(mScrim);
+            bringChildToFront(photo);
+            mScrim.animate()
+                    .withLayer()
+                    .setDuration(mPickUpDuration)
+                    .alpha(0f)
+                    .withEndAction(new Runnable() {
+                        @Override
+                        public void run() {
+                            mScrim.setVisibility(View.GONE);
+                        }
+                    });
+        }
     }
 
     /** Dispose of the photo gracefully, in case we can see some of it. */
@@ -846,7 +876,7 @@ public class PhotoTable extends FrameLayout {
     }
 
     private void moveToBackground(View photo) {
-        if (!isInBackground(photo)) {
+        if (mBackgroudOptimization && !isInBackground(photo)) {
             removeView(photo);
             mBackground.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
                     LayoutParams.WRAP_CONTENT));
@@ -864,7 +894,7 @@ public class PhotoTable extends FrameLayout {
     }
 
     private void moveToForeground(View photo) {
-        if (isInBackground(photo)) {
+        if (mBackgroudOptimization && isInBackground(photo)) {
             mBackground.removeView(photo);
             addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
                     LayoutParams.WRAP_CONTENT));
@@ -872,7 +902,7 @@ public class PhotoTable extends FrameLayout {
     }
 
     private boolean isInBackground(View photo) {
-        return mBackground.indexOfChild(photo) != -1;
+        return mBackgroudOptimization && mBackground.indexOfChild(photo) != -1;
     }
 
     /** wrap all orientations to the interval [-180, 180). */
@@ -883,7 +913,7 @@ public class PhotoTable extends FrameLayout {
         return result;
     }
 
-    /** Animate the selected photo to the foregound: zooming in to bring it foreward. */
+    /** Animate the selected photo to the foreground: zooming in to bring it forward. */
     private void pickUp(final View photo) {
         float photoWidth = photo.getWidth();
         float photoHeight = photo.getHeight();

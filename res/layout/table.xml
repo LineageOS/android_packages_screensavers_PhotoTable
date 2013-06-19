@@ -26,6 +26,15 @@
       android:background="@+drawable/table"
       android:focusable="true" >
 
+     <View
+         android:id="@+id/scrim"
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"
+         android:background="@+drawable/table"
+         android:alpha="0"
+         android:visibility="gone"
+         />
+
      <FrameLayout
          android:id="@+id/stageleft"
          android:layout_width="match_parent"
