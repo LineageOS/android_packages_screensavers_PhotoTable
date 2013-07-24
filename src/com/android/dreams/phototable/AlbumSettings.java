@@ -51,8 +51,13 @@ public class AlbumSettings {
 
     public boolean isAlbumEnabled(String albumId) {
         synchronized (mEnabledAlbums) {
-            boolean isEnabled = mEnabledAlbums.contains(albumId);
             return mEnabledAlbums.contains(albumId);
+        }
+    }
+
+    public boolean areAllEnabled(Collection<String> validAlbums) {
+        synchronized (mEnabledAlbums) {
+            return mEnabledAlbums.containsAll(validAlbums);
         }
     }
 
@@ -67,6 +72,21 @@ public class AlbumSettings {
                 }
                 writeEnabledAlbumsLocked();
             }
+        }
+    }
+
+    public void disableAllAlbums() {
+        synchronized (mEnabledAlbums) {
+            mEnabledAlbums.clear();
+            writeEnabledAlbumsLocked();
+        }
+    }
+
+    public void enableAllAlbums(Collection<String> validAlbums) {
+        synchronized (mEnabledAlbums) {
+            mEnabledAlbums.clear();
+            mEnabledAlbums.addAll(validAlbums);
+            writeEnabledAlbumsLocked();
         }
     }
 

@@ -15,30 +15,38 @@
  */
 package com.android.dreams.phototable;
 
-import android.service.dreams.DreamService;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PointF;
+import android.graphics.PorterDuff;
+import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.AsyncTask;
+import android.service.dreams.DreamService;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.FrameLayout;
-import android.widget.FrameLayout.LayoutParams;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
+import java.util.Formatter;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 /**
  * A surface where photos sit.
@@ -48,22 +56,34 @@ public class PhotoTable extends FrameLayout {
     private static final boolean DEBUG = false;
 
     class Launcher implements Runnable {
-        private final PhotoTable mTable;
-        public Launcher(PhotoTable table) {
-            mTable = table;
-        }
-
         @Override
         public void run() {
-            mTable.scheduleNext(mDropPeriod);
-            mTable.launch();
+            PhotoTable.this.scheduleNext(mDropPeriod);
+            PhotoTable.this.launch();
         }
     }
 
-    private static final long MAX_SELECTION_TIME = 10000L;
+    class FocusReaper implements Runnable {
+        @Override
+        public void run() {
+            PhotoTable.this.clearFocus();
+        }
+    }
+
+    class SelectionReaper implements Runnable {
+        @Override
+        public void run() {
+            PhotoTable.this.clearSelection();
+        }
+    }
+
+    private static final int NEXT = 1;
+    private static final int PREV = 0;
     private static Random sRNG = new Random();
 
     private final Launcher mLauncher;
+    private final FocusReaper mFocusReaper;
+    private final SelectionReaper mSelectionReaper;
     private final LinkedList<View> mOnTable;
     private final int mDropPeriod;
     private final int mFastDropPeriod;
@@ -77,20 +97,34 @@ public class PhotoTable extends FrameLayout {
     private final int mTableCapacity;
     private final int mRedealCount;
     private final int mInset;
-    private final PhotoSourcePlexor mPhotoSource;
+    private final PhotoSource mPhotoSource;
     private final Resources mResources;
     private final Interpolator mThrowInterpolator;
     private final Interpolator mDropInterpolator;
+    private final DragGestureDetector mDragGestureDetector;
+    private final EdgeSwipeDetector mEdgeSwipeDetector;
+    private final KeyboardInterpreter mKeyboardInterpreter;
+    private final boolean mStoryModeEnabled;
+    private final long mPickUpDuration;
+    private final int mMaxSelectionTime;
+    private final int mMaxFocusTime;
+    private final List<View> mAnimating;
+
     private DreamService mDream;
     private PhotoLaunchTask mPhotoLaunchTask;
+    private LoadNaturalSiblingTask mLoadOnDeckTasks[];
     private boolean mStarted;
     private boolean mIsLandscape;
     private int mLongSide;
     private int mShortSide;
     private int mWidth;
     private int mHeight;
-    private View mSelected;
-    private long mSelectedTime;
+    private View mSelection;
+    private View mOnDeck[];
+    private View mFocus;
+    private int mHighlightColor;
+    private ViewGroup mBackground;
+    private ViewGroup mStageLeft;
 
     public PhotoTable(Context context, AttributeSet as) {
         super(context, as);
@@ -103,10 +137,15 @@ public class PhotoTable extends FrameLayout {
         mTableRatio = mResources.getInteger(R.integer.table_ratio) / 1000000f;
         mImageRotationLimit = (float) mResources.getInteger(R.integer.max_image_rotation);
         mThrowSpeed = mResources.getDimension(R.dimen.image_throw_speed);
+        mPickUpDuration = mResources.getInteger(R.integer.photo_pickup_duration);
         mThrowRotation = (float) mResources.getInteger(R.integer.image_throw_rotatioan);
         mTableCapacity = mResources.getInteger(R.integer.table_capacity);
         mRedealCount = mResources.getInteger(R.integer.redeal_count);
         mTapToExit = mResources.getBoolean(R.bool.enable_tap_to_exit);
+        mStoryModeEnabled = mResources.getBoolean(R.bool.enable_story_mode);
+        mHighlightColor = mResources.getColor(R.color.highlight_color);
+        mMaxSelectionTime = mResources.getInteger(R.integer.max_selection_time);
+        mMaxFocusTime = mResources.getInteger(R.integer.max_focus_time);
         mThrowInterpolator = new SoftLandingInterpolator(
                 mResources.getInteger(R.integer.soft_landing_time) / 1000000f,
                 mResources.getInteger(R.integer.soft_landing_distance) / 1000000f);
@@ -115,36 +154,145 @@ public class PhotoTable extends FrameLayout {
         mOnTable = new LinkedList<View>();
         mPhotoSource = new PhotoSourcePlexor(getContext(),
                 getContext().getSharedPreferences(PhotoTableDreamSettings.PREFS_NAME, 0));
-        mLauncher = new Launcher(this);
+        mAnimating = new ArrayList<View>();
+        mLauncher = new Launcher();
+        mFocusReaper = new FocusReaper();
+        mSelectionReaper = new SelectionReaper();
+        mDragGestureDetector = new DragGestureDetector(context, this);
+        mEdgeSwipeDetector = new EdgeSwipeDetector(context, this);
+        mKeyboardInterpreter = new KeyboardInterpreter(this);
+        mLoadOnDeckTasks = new LoadNaturalSiblingTask[2];
+        mOnDeck = new View[2];
         mStarted = false;
     }
 
-    
+    @Override
+    public void onFinishInflate() {
+        mBackground = (ViewGroup) findViewById(R.id.background);
+        mStageLeft = (ViewGroup) findViewById(R.id.stageleft);
+    }
+
     public void setDream(DreamService dream) {
         mDream = dream;
     }
 
     public boolean hasSelection() {
-        return mSelected != null;
+        return mSelection != null;
     }
 
-    public View getSelected() {
-        return mSelected;
+    public View getSelection() {
+        return mSelection;
     }
 
     public void clearSelection() {
-        mSelected = null;
+        if (hasSelection()) {
+            dropOnTable(mSelection);
+            mPhotoSource.donePaging(getBitmap(mSelection));
+            if (mStoryModeEnabled) {
+                fadeInBackground(mSelection);
+            }
+            mSelection = null;
+        }
+        for (int slot = 0; slot < mOnDeck.length; slot++) {
+            if (mOnDeck[slot] != null) {
+                fadeAway(mOnDeck[slot], false);
+                mOnDeck[slot] = null;
+            }
+            if (mLoadOnDeckTasks[slot] != null &&
+                    mLoadOnDeckTasks[slot].getStatus() != AsyncTask.Status.FINISHED) {
+                mLoadOnDeckTasks[slot].cancel(true);
+                mLoadOnDeckTasks[slot] = null;
+            }
+        }
     }
 
     public void setSelection(View selected) {
-        assert(selected != null);
-        if (mSelected != null) {
-            dropOnTable(mSelected);
+        if (selected != null) {
+            clearSelection();
+            mSelection = selected;
+            promoteSelection();
+            if (mStoryModeEnabled) {
+                fadeOutBackground(mSelection);
+            }
         }
-        mSelected = selected;
-        mSelectedTime = System.currentTimeMillis();
-        bringChildToFront(selected);
-        pickUp(selected);
+    }
+
+    public void selectNext() {
+        if (mStoryModeEnabled) {
+            log("selectNext");
+            if (hasSelection() && mOnDeck[NEXT] != null) {
+                placeOnDeck(mSelection, PREV);
+                mSelection = mOnDeck[NEXT];
+                mOnDeck[NEXT] = null;
+                promoteSelection();
+            }
+        } else {
+            clearSelection();
+        }
+    }
+
+    public void selectPrevious() {
+        if (mStoryModeEnabled) {
+            log("selectPrevious");
+            if (hasSelection() && mOnDeck[PREV] != null) {
+                placeOnDeck(mSelection, NEXT);
+                mSelection = mOnDeck[PREV];
+                mOnDeck[PREV] = null;
+                promoteSelection();
+            }
+        } else {
+            clearSelection();
+        }
+    }
+
+    private void promoteSelection() {
+        if (hasSelection()) {
+            scheduleSelectionReaper(mMaxSelectionTime);
+            mSelection.animate().cancel();
+            mSelection.setAlpha(1f);
+            moveToTopOfPile(mSelection);
+            pickUp(mSelection);
+            if (mStoryModeEnabled) {
+                for (int slot = 0; slot < mOnDeck.length; slot++) {
+                    if (mLoadOnDeckTasks[slot] != null &&
+                            mLoadOnDeckTasks[slot].getStatus() != AsyncTask.Status.FINISHED) {
+                        mLoadOnDeckTasks[slot].cancel(true);
+                    }
+                    if (mOnDeck[slot] == null) {
+                        mLoadOnDeckTasks[slot] = new LoadNaturalSiblingTask(slot);
+                        mLoadOnDeckTasks[slot].execute(mSelection);
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean hasFocus() {
+        return mFocus != null;
+    }
+
+    public View getFocus() {
+        return mFocus;
+    }
+
+    public void clearFocus() {
+        if (hasFocus()) {
+            setHighlight(getFocus(), false);
+        }
+        mFocus = null;
+    }
+
+    public void setDefaultFocus() {
+        setFocus(mOnTable.getLast());
+    }
+
+    public void setFocus(View focus) {
+        assert(focus != null);
+        clearFocus();
+        mFocus = focus;
+        moveToTopOfPile(focus);
+        setHighlight(focus, true);
+        scheduleFocusReaper(mMaxFocusTime);
     }
 
     static float lerp(float a, float b, float f) {
@@ -169,17 +317,8 @@ public class PhotoTable extends FrameLayout {
         return p;
     }
 
-    private static PointF randInCenter(float i, float j, int width, int height) {
-        log("randInCenter (" + i + ", " + j + ", " + width + ", " + height + ")");
-        PointF p = new PointF();
-        p.x = 0.5f * width + 0.15f * width * i;
-        p.y = 0.5f * height + 0.15f * height * j;
-        log("randInCenter returning " + p.x + "," + p.y);
-        return p;
-    }
-
     private static PointF randMultiDrop(int n, float i, float j, int width, int height) {
-        log("randMultiDrop (" + n + "," + i + ", " + j + ", " + width + ", " + height + ")");
+        log("randMultiDrop (%d, %f, %f, %d, %d)", n, i, j, width, height);
         final float[] cx = {0.3f, 0.3f, 0.5f, 0.7f, 0.7f};
         final float[] cy = {0.3f, 0.7f, 0.5f, 0.3f, 0.7f};
         n = Math.abs(n);
@@ -188,15 +327,82 @@ public class PhotoTable extends FrameLayout {
         PointF p = new PointF();
         p.x = x * width + 0.05f * width * i;
         p.y = y * height + 0.05f * height * j;
-        log("randInCenter returning " + p.x + "," + p.y);
+        log("randInCenter returning %f, %f", p.x, p.y);
         return p;
+    }
+
+    private double cross(double[] a, double[] b) {
+        return a[0] * b[1] - a[1] * b[0];
+    }
+
+    private double norm(double[] a) {
+        return Math.hypot(a[0], a[1]);
+    }
+
+    private double[] getCenter(View photo) {
+        float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
+        float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
+        double[] center = { photo.getX() + width / 2f,
+                            - (photo.getY() + height / 2f) };
+        return center;
+    }
+
+    public View moveFocus(View focus, float direction) {
+        return moveFocus(focus, direction, 90f);
+    }
+
+    public View moveFocus(View focus, float direction, float angle) {
+        if (focus == null) {
+            setFocus(mOnTable.getLast());
+        } else {
+            final double alpha = Math.toRadians(direction);
+            final double beta = Math.toRadians(Math.min(angle, 180f) / 2f);
+            final double[] left = { Math.sin(alpha - beta),
+                                    Math.cos(alpha - beta) };
+            final double[] right = { Math.sin(alpha + beta),
+                                     Math.cos(alpha + beta) };
+            final double[] a = getCenter(focus);
+            View bestFocus = null;
+            double bestDistance = Double.MAX_VALUE;
+            for (View candidate: mOnTable) {
+                if (candidate != focus) {
+                    final double[] b = getCenter(candidate);
+                    final double[] delta = { b[0] - a[0],
+                                             b[1] - a[1] };
+                    if (cross(delta, left) > 0.0 && cross(delta, right) < 0.0) {
+                        final double distance = norm(delta);
+                        if (bestDistance > distance) {
+                            bestDistance = distance;
+                            bestFocus = candidate;
+                        }
+                    }
+                }
+            }
+            if (bestFocus == null) {
+                if (angle < 180f) {
+                    return moveFocus(focus, direction, 180f);
+                }
+            } else {
+                setFocus(bestFocus);
+            }
+        }
+        return getFocus();
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        return mKeyboardInterpreter.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onGenericMotionEvent(MotionEvent event) {
+        return mEdgeSwipeDetector.onTouchEvent(event) || mDragGestureDetector.onTouchEvent(event);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
             if (hasSelection()) {
-                dropOnTable(getSelected());
                 clearSelection();
             } else  {
                 if (mTapToExit && mDream != null) {
@@ -211,7 +417,7 @@ public class PhotoTable extends FrameLayout {
     @Override
     public void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
-        log("onLayout (" + left + ", " + top + ", " + right + ", " + bottom + ")");
+        log("onLayout (%d, %d, %d, %d)", left, top, right, bottom);
 
         mHeight = bottom - top;
         mWidth = right - left;
@@ -222,10 +428,16 @@ public class PhotoTable extends FrameLayout {
         boolean isLandscape = mWidth > mHeight;
         if (mIsLandscape != isLandscape) {
             for (View photo: mOnTable) {
-                if (photo == getSelected()) {
-                    pickUp(photo);
-                } else {
+                if (photo != getSelection()) {
                     dropOnTable(photo);
+                }
+            }
+            if (hasSelection()) {
+                pickUp(getSelection());
+                for (int slot = 0; slot < mOnDeck.length; slot++) {
+                    if (mOnDeck[slot] != null) {
+                        placeOnDeck(mOnDeck[slot], slot);
+                    }
                 }
             }
             mIsLandscape = isLandscape;
@@ -237,6 +449,93 @@ public class PhotoTable extends FrameLayout {
     public boolean isOpaque() {
         return true;
     }
+
+    /** Put a nice border on the bitmap. */
+    private static View applyFrame(final PhotoTable table, final BitmapFactory.Options options,
+            Bitmap decodedPhoto) {
+        LayoutInflater inflater = (LayoutInflater) table.getContext()
+            .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        View photo = inflater.inflate(R.layout.photo, null);
+        ImageView image = (ImageView) photo;
+        Drawable[] layers = new Drawable[2];
+        int photoWidth = options.outWidth;
+        int photoHeight = options.outHeight;
+        if (decodedPhoto == null || options.outWidth <= 0 || options.outHeight <= 0) {
+            photo = null;
+        } else {
+            decodedPhoto.setHasMipMap(true);
+            layers[0] = new BitmapDrawable(table.mResources, decodedPhoto);
+            layers[1] = table.mResources.getDrawable(R.drawable.frame);
+            LayerDrawable layerList = new LayerDrawable(layers);
+            layerList.setLayerInset(0, table.mInset, table.mInset,
+                                    table.mInset, table.mInset);
+            image.setImageDrawable(layerList);
+
+            photo.setTag(R.id.photo_width, Integer.valueOf(photoWidth));
+            photo.setTag(R.id.photo_height, Integer.valueOf(photoHeight));
+
+            photo.setOnTouchListener(new PhotoTouchListener(table.getContext(),
+                                                            table));
+        }
+        return photo;
+    }
+
+    private class LoadNaturalSiblingTask extends AsyncTask<View, Void, View> {
+        private final BitmapFactory.Options mOptions;
+        private final int mSlot;
+        private View mParent;
+
+        public LoadNaturalSiblingTask (int slot) {
+            mOptions = new BitmapFactory.Options();
+            mOptions.inTempStorage = new byte[32768];
+            mSlot = slot;
+        }
+
+        @Override
+        public View doInBackground(View... views) {
+            log("load natural %s", (mSlot == NEXT ? "next" : "previous"));
+            final PhotoTable table = PhotoTable.this;
+            mParent = views[0];
+            final Bitmap current = getBitmap(mParent);
+            Bitmap decodedPhoto;
+            if (mSlot == NEXT) {
+                decodedPhoto = table.mPhotoSource.naturalNext(current,
+                    mOptions, table.mLongSide, table.mShortSide);
+            } else {
+                decodedPhoto = table.mPhotoSource.naturalPrevious(current,
+                    mOptions, table.mLongSide, table.mShortSide);
+            }
+            return applyFrame(PhotoTable.this, mOptions, decodedPhoto);
+        }
+
+        @Override
+        public void onPostExecute(View photo) {
+            if (photo != null) {
+                if (hasSelection() && getSelection() == mParent) {
+                    log("natural %s being rendered", (mSlot == NEXT ? "next" : "previous"));
+                    PhotoTable.this.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                            LayoutParams.WRAP_CONTENT));
+                    PhotoTable.this.mOnDeck[mSlot] = photo;
+                    float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
+                    float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
+                    photo.setX(mSlot == PREV ? -2 * width : mWidth + 2 * width);
+                    photo.setY((mHeight - height) / 2);
+                    photo.addOnLayoutChangeListener(new OnLayoutChangeListener() {
+                        @Override
+                        public void onLayoutChange(View v, int left, int top, int right, int bottom,
+                                int oldLeft, int oldTop, int oldRight, int oldBottom) {
+                            PhotoTable.this.placeOnDeck(v, mSlot);
+                            v.removeOnLayoutChangeListener(this);
+                        }
+                    });
+                } else {
+                   recycle(photo);
+                }
+            } else {
+                log("natural, %s was null!", (mSlot == NEXT ? "next" : "previous"));
+            }
+        }
+    };
 
     private class PhotoLaunchTask extends AsyncTask<Void, Void, View> {
         private final BitmapFactory.Options mOptions;
@@ -250,35 +549,9 @@ public class PhotoTable extends FrameLayout {
         public View doInBackground(Void... unused) {
             log("load a new photo");
             final PhotoTable table = PhotoTable.this;
-
-            LayoutInflater inflater = (LayoutInflater) table.getContext()
-                   .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            View photo = inflater.inflate(R.layout.photo, null);
-            ImageView image = (ImageView) photo;
-            Drawable[] layers = new Drawable[2];
-            Bitmap decodedPhoto = table.mPhotoSource.next(mOptions,
-                    table.mLongSide, table.mShortSide);
-            int photoWidth = mOptions.outWidth;
-            int photoHeight = mOptions.outHeight;
-            if (mOptions.outWidth <= 0 || mOptions.outHeight <= 0) {
-                photo = null;
-            } else {
-                decodedPhoto.setHasMipMap(true);
-                layers[0] = new BitmapDrawable(table.mResources, decodedPhoto);
-                layers[1] = table.mResources.getDrawable(R.drawable.frame);
-                LayerDrawable layerList = new LayerDrawable(layers);
-                layerList.setLayerInset(0, table.mInset, table.mInset,
-                                        table.mInset, table.mInset);
-                image.setImageDrawable(layerList);
-
-                photo.setTag(R.id.photo_width, new Integer(photoWidth));
-                photo.setTag(R.id.photo_height, new Integer(photoHeight));
-
-                photo.setOnTouchListener(new PhotoTouchListener(table.getContext(),
-                                                                table));
-            }
-
-            return photo;
+            return applyFrame(PhotoTable.this, mOptions,
+                 table.mPhotoSource.next(mOptions,
+                      table.mLongSide, table.mShortSide));
         }
 
         @Override
@@ -287,15 +560,25 @@ public class PhotoTable extends FrameLayout {
                 final PhotoTable table = PhotoTable.this;
 
                 table.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
-                                                       LayoutParams.WRAP_CONTENT));
+                    LayoutParams.WRAP_CONTENT));
                 if (table.hasSelection()) {
-                    table.bringChildToFront(table.getSelected());
+                    for (int slot = 0; slot < mOnDeck.length; slot++) {
+                        if (mOnDeck[slot] != null) {
+                            table.moveToTopOfPile(mOnDeck[slot]);
+                        }
+                    }
+                    table.moveToTopOfPile(table.getSelection());
                 }
-                int width = ((Integer) photo.getTag(R.id.photo_width)).intValue();
-                int height = ((Integer) photo.getTag(R.id.photo_height)).intValue();
 
                 log("drop it");
                 table.throwOnTable(photo);
+
+                if (mOnTable.size() > mTableCapacity) {
+                    int targetSize = Math.max(0, mOnTable.size() - mRedealCount);
+                    while (mOnTable.size() > targetSize) {
+                        fadeAway(mOnTable.poll(), false);
+                    }
+                }
 
                 if(table.mOnTable.size() < table.mTableCapacity) {
                     table.scheduleNext(table.mFastDropPeriod);
@@ -304,14 +587,11 @@ public class PhotoTable extends FrameLayout {
         }
     };
 
+    /** Bring a new photo onto the table. */
     public void launch() {
         log("launching");
-        setSystemUiVisibility(View.STATUS_BAR_HIDDEN);
-        if (hasSelection() &&
-                (System.currentTimeMillis() - mSelectedTime) > MAX_SELECTION_TIME) {
-            dropOnTable(getSelected());
-            clearSelection();
-        } else {
+        setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
+        if (!hasSelection()) {
             log("inflate it");
             if (mPhotoLaunchTask == null ||
                 mPhotoLaunchTask.getStatus() == AsyncTask.Status.FINISHED) {
@@ -320,18 +600,52 @@ public class PhotoTable extends FrameLayout {
             }
         }
     }
+
+    /** De-emphasize the other photos on the table. */
+    public void fadeOutBackground(final View photo) {
+        mBackground.animate()
+        .withLayer()
+        .setDuration(mPickUpDuration)
+        .alpha(0f);
+    }
+
+
+    /** Return the other photos to foreground status. */
+    public void fadeInBackground(final View photo) {
+        mAnimating.add(photo);
+        mBackground.animate()
+        .withLayer()
+        .setDuration(mPickUpDuration)
+        .alpha(1f)
+        .withEndAction(new Runnable() {
+            @Override
+            public void run() {
+                mAnimating.remove(photo);
+                if (!mAnimating.contains(photo)) {
+                    moveToBackground(photo);
+                }
+            }
+        });
+    }
+
+    /** Dispose of the photo gracefully, in case we can see some of it. */
     public void fadeAway(final View photo, final boolean replace) {
         // fade out of view
         mOnTable.remove(photo);
+        exitStageLeft(photo);
+        photo.setOnTouchListener(null);
         photo.animate().cancel();
         photo.animate()
                 .withLayer()
                 .alpha(0f)
-                .setDuration(1000)
+                .setDuration(mPickUpDuration)
                 .withEndAction(new Runnable() {
                         @Override
                         public void run() {
-                            removeView(photo);
+                            if (photo == getFocus()) {
+                                clearFocus();
+                            }
+                            mStageLeft.removeView(photo);
                             recycle(photo);
                             if (replace) {
                                 scheduleNext(mNowDropDelay);
@@ -340,19 +654,62 @@ public class PhotoTable extends FrameLayout {
                     });
     }
 
-    public void moveToBackOfQueue(View photo) {
+    /** Visually on top, and also freshest, for the purposes of timeouts. */
+    public void moveToTopOfPile(View photo) {
         // make this photo the last to be removed.
-        bringChildToFront(photo);
+        if (isInBackground(photo)) {
+           mBackground.bringChildToFront(photo);
+        } else {
+            bringChildToFront(photo);
+        }
         invalidate();
         mOnTable.remove(photo);
         mOnTable.offer(photo);
     }
 
+    /** On deck is to the left or right of the selected photo. */
+    private void placeOnDeck(final View photo, final int slot ) {
+        if (slot < mOnDeck.length) {
+            if (mOnDeck[slot] != null && mOnDeck[slot] != photo) {
+                fadeAway(mOnDeck[slot], false);
+            }
+            mOnDeck[slot] = photo;
+            float photoWidth = photo.getWidth();
+            float photoHeight = photo.getHeight();
+            float scale = Math.min(getHeight() / photoHeight, getWidth() / photoWidth);
+
+            float x = (getWidth() - photoWidth) / 2f;
+            float y = (getHeight() - photoHeight) / 2f;
+
+            float offset = (((float) mWidth + scale * (photoWidth - 2f * mInset)) / 2f);
+            x += (slot == NEXT? 1f : -1f) * offset;
+
+            photo.animate()
+                .withLayer()
+                .rotation(0f)
+                .rotationY(0f)
+                .scaleX(scale)
+                .scaleY(scale)
+                .x(x)
+                .y(y)
+                .setDuration(mPickUpDuration)
+                .setInterpolator(new DecelerateInterpolator(2f));
+        }
+    }
+
+    /** Move in response to touch. */
+    public void move(final View photo, float x, float y, float a) {
+        photo.animate().cancel();
+        photo.setAlpha(1f);
+        photo.setX((int) x);
+        photo.setY((int) y);
+        photo.setRotation((int) a);
+    }
+
+    /** Wind up off screen, so we can animate in. */
     private void throwOnTable(final View photo) {
         mOnTable.offer(photo);
         log("start offscreen");
-        int width = ((Integer) photo.getTag(R.id.photo_width));
-        int height = ((Integer) photo.getTag(R.id.photo_height));
         photo.setRotation(mThrowRotation);
         photo.setX(-mLongSide);
         photo.setY(-mLongSide);
@@ -360,10 +717,87 @@ public class PhotoTable extends FrameLayout {
         dropOnTable(photo, mThrowInterpolator);
     }
 
+    public void move(final View photo, float dx, float dy, boolean drop) {
+        if (photo != null) {
+            final float x = photo.getX() + dx;
+            final float y = photo.getY() + dy;
+            photo.setX(x);
+            photo.setY(y);
+            Log.d(TAG, "[" + photo.getX() + ", " + photo.getY() + "] + (" + dx + "," + dy + ")");
+            if (drop && photoOffTable(photo)) {
+                fadeAway(photo, true);
+            }
+        }
+    }
+
+    /** Fling with no touch hints, then land off screen. */
+    public void fling(final View photo) {
+        final float[] o = { mWidth + mLongSide / 2f,
+                            mHeight + mLongSide / 2f };
+        final float[] a = { photo.getX(), photo.getY() };
+        final float[] b = { o[0], a[1] + o[0] - a[0] };
+        final float[] c = { a[0] + o[1] - a[1], o[1] };
+        float[] delta = { 0f, 0f };
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) < Math.hypot(c[0] - a[0], c[1] - a[1])) {
+            delta[0] = b[0] - a[0];
+            delta[1] = b[1] - a[1];
+        } else {
+            delta[0] = c[0] - a[0];
+            delta[1] = c[1] - a[1];
+        }
+
+        final float dist = (float) Math.hypot(delta[0], delta[1]);
+        final int duration = (int) (1000f * dist / mThrowSpeed);
+        fling(photo, delta[0], delta[1], duration, true);
+    }
+
+    /** Continue dynamically after a fling gesture, possibly off the screen. */
+    public void fling(final View photo, float dx, float dy, int duration, boolean spin) {
+        if (photo == getFocus()) {
+            if (moveFocus(photo, 0f) == null) {
+                moveFocus(photo, 180f);
+            }
+        }
+        moveToForeground(photo);
+        ViewPropertyAnimator animator = photo.animate()
+                .withLayer()
+                .xBy(dx)
+                .yBy(dy)
+                .setDuration(duration)
+                .setInterpolator(new DecelerateInterpolator(2f));
+
+        if (spin) {
+            animator.rotation(mThrowRotation);
+        }
+
+        if (photoOffTable(photo, (int) dx, (int) dy)) {
+            log("fling away");
+            animator.withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        fadeAway(photo, true);
+                    }
+                });
+        }
+    }
+    public boolean photoOffTable(final View photo) {
+        return photoOffTable(photo, 0, 0);
+    }
+
+    public boolean photoOffTable(final View photo, final int dx, final int dy) {
+        Rect hit = new Rect();
+        photo.getHitRect(hit);
+        hit.offset(dx, dy);
+        return (hit.bottom < 0f || hit.top > getHeight() ||
+                hit.right < 0f || hit.left > getWidth());
+    }
+
+    /** Animate to a random place and orientation, down on the table (visually small). */
     public void dropOnTable(final View photo) {
         dropOnTable(photo, mDropInterpolator);
     }
 
+    /** Animate to a random place and orientation, down on the table (visually small). */
     public void dropOnTable(final View photo, final Interpolator interpolator) {
         float angle = randfrange(-mImageRotationLimit, mImageRotationLimit);
         PointF p = randMultiDrop(sRNG.nextInt(),
@@ -372,46 +806,73 @@ public class PhotoTable extends FrameLayout {
         float x = p.x;
         float y = p.y;
 
-        log("drop it at " + x + ", " + y);
+        log("drop it at %f, %f", x, y);
 
         float x0 = photo.getX();
         float y0 = photo.getY();
-        float width = (float) ((Integer) photo.getTag(R.id.photo_width)).intValue();
-        float height = (float) ((Integer) photo.getTag(R.id.photo_height)).intValue();
 
         x -= mLongSide / 2f;
         y -= mShortSide / 2f;
-        log("fixed offset is " + x + ", " + y);
+        log("fixed offset is %f, %f ", x, y);
 
         float dx = x - x0;
         float dy = y - y0;
 
-        float dist = (float) (Math.sqrt(dx * dx + dy * dy));
+        float dist = (float) Math.hypot(dx, dy);
         int duration = (int) (1000f * dist / mThrowSpeed);
         duration = Math.max(duration, 1000);
 
         log("animate it");
         // toss onto table
+        mAnimating.add(photo);
         photo.animate()
-                .scaleX(mTableRatio / mImageRatio)
-                .scaleY(mTableRatio / mImageRatio)
-                .rotation(angle)
-                .x(x)
-                .y(y)
-                .setDuration(duration)
-                .setInterpolator(interpolator)
-                .withEndAction(new Runnable() {
-                        @Override
-                            public void run() {
-                            if (mOnTable.size() > mTableCapacity) {
-                                while (mOnTable.size() > (mTableCapacity - mRedealCount)) {
-                                    fadeAway(mOnTable.poll(), false);
-                                }
-                                // zero delay because we already waited duration ms
-                                scheduleNext(0);
-                            }
-                        }
-                    });
+            .withLayer()
+            .scaleX(mTableRatio / mImageRatio)
+            .scaleY(mTableRatio / mImageRatio)
+            .rotation(angle)
+            .x(x)
+            .y(y)
+            .setDuration(duration)
+            .setInterpolator(interpolator)
+            .withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    mAnimating.remove(photo);
+                    if (!mAnimating.contains(photo)) {
+                        moveToBackground(photo);
+                    }
+                }
+            });
+    }
+
+    private void moveToBackground(View photo) {
+        if (!isInBackground(photo)) {
+            removeView(photo);
+            mBackground.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private void exitStageLeft(View photo) {
+        if (isInBackground(photo)) {
+            mBackground.removeView(photo);
+        } else {
+            removeView(photo);
+        }
+        mStageLeft.addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT));
+    }
+
+    private void moveToForeground(View photo) {
+        if (isInBackground(photo)) {
+            mBackground.removeView(photo);
+            addView(photo, new LayoutParams(LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT));
+        }
+    }
+
+    private boolean isInBackground(View photo) {
+        return mBackground.indexOfChild(photo) != -1;
     }
 
     /** wrap all orientations to the interval [-180, 180). */
@@ -422,59 +883,100 @@ public class PhotoTable extends FrameLayout {
         return result;
     }
 
+    /** Animate the selected photo to the foregound: zooming in to bring it foreward. */
     private void pickUp(final View photo) {
         float photoWidth = photo.getWidth();
         float photoHeight = photo.getHeight();
 
         float scale = Math.min(getHeight() / photoHeight, getWidth() / photoWidth);
 
+        log("scale is %f", scale);
         log("target it");
         float x = (getWidth() - photoWidth) / 2f;
         float y = (getHeight() - photoHeight) / 2f;
 
-        float x0 = photo.getX();
-        float y0 = photo.getY();
-        float dx = x - x0;
-        float dy = y - y0;
-
-        float dist = (float) (Math.sqrt(dx * dx + dy * dy));
-        int duration = (int) (1000f * dist / 600f);
-        duration = Math.max(duration, 500);
-
         photo.setRotation(wrapAngle(photo.getRotation()));
 
         log("animate it");
-        // toss onto table
+        // lift up to the glass for a good look
+        moveToForeground(photo);
         photo.animate()
-                .rotation(0f)
-                .scaleX(scale)
-                .scaleY(scale)
-                .x(x)
-                .y(y)
-                .setDuration(duration)
-                .setInterpolator(new DecelerateInterpolator(2f))
-                .withEndAction(new Runnable() {
-                        @Override
-                            public void run() {
-                            log("endtimes: " + photo.getX());
-                        }
-                    });
+            .withLayer()
+            .rotation(0f)
+            .rotationY(0f)
+            .alpha(1f)
+            .scaleX(scale)
+            .scaleY(scale)
+            .x(x)
+            .y(y)
+            .setDuration(mPickUpDuration)
+            .setInterpolator(new DecelerateInterpolator(2f))
+            .withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    log("endtimes: %f", photo.getX());
+                }
+            });
+    }
+
+    private Bitmap getBitmap(View photo) {
+        if (photo == null) {
+            return null;
+        }
+        ImageView image = (ImageView) photo;
+        LayerDrawable layers = (LayerDrawable) image.getDrawable();
+        if (layers == null) {
+            return null;
+        }
+        BitmapDrawable bitmap = (BitmapDrawable) layers.getDrawable(0);
+        if (bitmap == null) {
+            return null;
+        }
+        return bitmap.getBitmap();
     }
 
     private void recycle(View photo) {
-        ImageView image = (ImageView) photo;
-        LayerDrawable layers = (LayerDrawable) image.getDrawable();
-        BitmapDrawable bitmap = (BitmapDrawable) layers.getDrawable(0);
-        bitmap.getBitmap().recycle();
+        if (photo != null) {
+            removeView(photo);
+            mPhotoSource.recycle(getBitmap(photo));
+        }
     }
 
+    public void setHighlight(View photo, boolean highlighted) {
+        ImageView image = (ImageView) photo;
+        LayerDrawable layers = (LayerDrawable) image.getDrawable();
+        if (highlighted) {
+            layers.getDrawable(1).setColorFilter(mHighlightColor, PorterDuff.Mode.SRC_IN);
+        } else {
+            layers.getDrawable(1).clearColorFilter();
+        }
+    }
+
+    /** Schedule the first launch.  Idempotent. */
     public void start() {
         if (!mStarted) {
             log("kick it");
             mStarted = true;
-            scheduleNext(mDropPeriod);
-            launch();
+            scheduleNext(0);
         }
+    }
+
+    public void refreshSelection() {
+        scheduleSelectionReaper(mMaxFocusTime);
+    }
+
+    public void scheduleSelectionReaper(int delay) {
+        removeCallbacks(mSelectionReaper);
+        postDelayed(mSelectionReaper, delay);
+    }
+
+    public void refreshFocus() {
+        scheduleFocusReaper(mMaxFocusTime);
+    }
+
+    public void scheduleFocusReaper(int delay) {
+        removeCallbacks(mFocusReaper);
+        postDelayed(mFocusReaper, delay);
     }
 
     public void scheduleNext(int delay) {
@@ -482,9 +984,11 @@ public class PhotoTable extends FrameLayout {
         postDelayed(mLauncher, delay);
     }
 
-    private static void log(String message) {
+    private static void log(String message, Object... args) {
         if (DEBUG) {
-            Log.i(TAG, message);
+            Formatter formatter = new Formatter();
+            formatter.format(message, args);
+            Log.i(TAG, formatter.toString());
         }
     }
 }

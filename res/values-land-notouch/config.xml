@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2012 The Android Open Source Project
+<!-- Copyright (C) 2013 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -14,10 +14,17 @@
      limitations under the License.
 -->
 <resources>
-  <!-- Parts per million ratio between image size and screen size. -->
-  <integer name="image_ratio">750000</integer>
 
-  <!-- Parts per million ratio between image size on the table and screen size. -->
-  <integer name="table_ratio">300000</integer>
+    <!-- Maximum number of photos to leave on the table. -->
+    <integer name="table_capacity">6</integer>
+
+    <!-- Number of images to discard at a time. -->
+    <integer name="redeal_count">2</integer>
+
+    <!-- Parts per million ratio between image size on the table and screen size. -->
+    <integer name="table_ratio">333333</integer>
+
+    <!-- Duration in milliseconds for the pickup animation. -->
+    <integer name="photo_pickup_duration">1500</integer>
+
 </resources>
-

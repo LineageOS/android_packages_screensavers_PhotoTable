@@ -26,7 +26,6 @@ import android.view.WindowManager;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +35,7 @@ import java.util.Set;
 /**
  * Loads images from Picasa.
  */
-public class PicasaSource extends PhotoSource {
+public class PicasaSource extends CursorPhotoSource {
     private static final String TAG = "PhotoTable.PicasaSource";
 
     private static final String PICASA_AUTHORITY =
@@ -61,10 +60,10 @@ public class PicasaSource extends PhotoSource {
     private static final String PICASA_TYPE_KEY = "type";
     private static final String PICASA_TYPE_FULL_VALUE = "full";
     private static final String PICASA_TYPE_SCREEN_VALUE = "screennail";
-    private static final String PICASA_TYPE_THUMB_VALUE = "thumbnail";
     private static final String PICASA_TYPE_IMAGE_VALUE = "image";
     private static final String PICASA_POSTS_TYPE = "Buzz";
     private static final String PICASA_UPLOAD_TYPE = "InstantUpload";
+    private static final String PICASA_UPLOADAUTO_TYPE = "InstantUploadAuto";
 
     private final int mMaxPostAblums;
     private final String mPostsAlbumName;
@@ -75,13 +74,13 @@ public class PicasaSource extends PhotoSource {
     private final int mMaxRecycleSize;
 
     private Set<String> mFoundAlbumIds;
-    private int mNextPosition;
+    private int mLastPosition;
     private int mDisplayLongSide;
 
     public PicasaSource(Context context, SharedPreferences settings) {
         super(context, settings);
         mSourceName = TAG;
-        mNextPosition = -1;
+        mLastPosition = INVALID;
         mMaxPostAblums = mResources.getInteger(R.integer.max_post_albums);
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
         mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
@@ -90,6 +89,7 @@ public class PicasaSource extends PhotoSource {
         mConnectivityManager =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         mRecycleBin = new LinkedList<ImageData>();
+
         fillQueue();
         mDisplayLongSide = getDisplayLongSide();
     }
@@ -100,6 +100,65 @@ public class PicasaSource extends PhotoSource {
                 mContext.getSystemService(Context.WINDOW_SERVICE);
         wm.getDefaultDisplay().getMetrics(metrics);
         return Math.max(metrics.heightPixels, metrics.widthPixels);
+    }
+
+    @Override
+    protected void openCursor(ImageData data) {
+        log(TAG, "opening single album");
+
+        String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
+        String selection = PICASA_ALBUM_ID + " = '" + data.albumId + "'";
+
+        Uri.Builder picasaUriBuilder = new Uri.Builder()
+                .scheme("content")
+                .authority(PICASA_AUTHORITY)
+                .appendPath(PICASA_PHOTO_PATH);
+        data.cursor = mResolver.query(picasaUriBuilder.build(),
+                projection, selection, null, null);
+    }
+
+    @Override
+    protected void findPosition(ImageData data) {
+        if (data.position == UNINITIALIZED) {
+            if (data.cursor == null) {
+                openCursor(data);
+            }
+            if (data.cursor != null) {
+                int idIndex = data.cursor.getColumnIndex(PICASA_ID);
+                data.cursor.moveToPosition(-1);
+                while (data.position == -1 && data.cursor.moveToNext()) {
+                    String id = data.cursor.getString(idIndex);
+                    if (id != null && id.equals(data.id)) {
+                        data.position = data.cursor.getPosition();
+                    }
+                }
+                if (data.position == -1) {
+                    // oops!  The image isn't in this album. How did we get here?
+                    data.position = INVALID;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected ImageData unpackImageData(Cursor cursor, ImageData data) {
+        if (data == null) {
+            data = new ImageData();
+        }
+        int idIndex = cursor.getColumnIndex(PICASA_ID);
+        int urlIndex = cursor.getColumnIndex(PICASA_URL);
+        int bucketIndex = cursor.getColumnIndex(PICASA_ALBUM_ID);
+
+        data.id = cursor.getString(idIndex);
+        if (bucketIndex >= 0) {
+            data.albumId = cursor.getString(bucketIndex);
+        }
+        if (urlIndex >= 0) {
+            data.url = cursor.getString(urlIndex);
+        }
+        data.position = UNINITIALIZED;
+        data.cursor = null;
+        return data;
     }
 
     @Override
@@ -117,7 +176,6 @@ public class PicasaSource extends PhotoSource {
         }
 
         String[] projection = {PICASA_ID, PICASA_URL, PICASA_ROTATION, PICASA_ALBUM_ID};
-        boolean usePosts = false;
         LinkedList<String> albumIds = new LinkedList<String>();
         for (String id : getFoundAlbums()) {
             if (mSettings.isAlbumEnabled(id)) {
@@ -162,41 +220,30 @@ public class PicasaSource extends PhotoSource {
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
                 projection, selection.toString(), null, null);
         if (cursor != null) {
-            if (cursor.getCount() > howMany && mNextPosition == -1) {
-                mNextPosition =
-                        (int) Math.abs(mRNG.nextInt() % (cursor.getCount() - howMany));
+            if (cursor.getCount() > howMany && mLastPosition == INVALID) {
+                mLastPosition = pickRandomStart(cursor.getCount(), howMany);
             }
-            if (mNextPosition == -1) {
-                mNextPosition = 0;
-            }
-            log(TAG, "moving to position: " + mNextPosition);
-            cursor.moveToPosition(mNextPosition);
+
+            log(TAG, "moving to position: " + mLastPosition);
+            cursor.moveToPosition(mLastPosition);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
-            int urlIndex = cursor.getColumnIndex(PICASA_URL);
-            int orientationIndex = cursor.getColumnIndex(PICASA_ROTATION);
-            int bucketIndex = cursor.getColumnIndex(PICASA_ALBUM_ID);
 
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (foundImages.size() < howMany && !cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     if (idIndex >= 0) {
-                        ImageData data = new ImageData();
-                        data.id = cursor.getString(idIndex);
-
-                        if (urlIndex >= 0) {
-                            data.url = cursor.getString(urlIndex);
-                        }
-
+                        ImageData data = unpackImageData(cursor, null);
                         foundImages.offer(data);
                     }
-                    if (cursor.moveToNext()) {
-                        mNextPosition++;
-                    }
+                    mLastPosition = cursor.getPosition();
                 }
                 if (cursor.isAfterLast()) {
-                    mNextPosition = 0;
+                    mLastPosition = -1;
+                }
+                if (cursor.isBeforeFirst()) {
+                    mLastPosition = INVALID;
                 }
             }
 
@@ -254,17 +301,15 @@ public class PicasaSource extends PhotoSource {
                 projection, selection, null, order);
         if (cursor != null) {
             log(TAG, " " + id + " resolved to " + cursor.getCount() + " albums");
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
-            int typeIndex = cursor.getColumnIndex(PICASA_ALBUM_TYPE);
 
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     albumIds.add(cursor.getString(idIndex));
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
@@ -296,7 +341,7 @@ public class PicasaSource extends PhotoSource {
         Cursor cursor = mResolver.query(picasaUriBuilder.build(),
                 projection, null, null, null);
         if (cursor != null) {
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int idIndex = cursor.getColumnIndex(PICASA_ID);
             int thumbIndex = cursor.getColumnIndex(PICASA_THUMB);
@@ -308,12 +353,13 @@ public class PicasaSource extends PhotoSource {
             if (idIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     String id = TAG + ":" + cursor.getString(idIndex);
                     String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
                     String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
                     boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
-                    boolean isUpload = (typeIndex >= 0 && PICASA_UPLOAD_TYPE.equals(type));
+                    boolean isUpload = (typeIndex >= 0 &&
+                            (PICASA_UPLOAD_TYPE.equals(type) || PICASA_UPLOADAUTO_TYPE.equals(type)));
 
                     String account = accounts.get(user);
                     if (account == null) {
@@ -367,8 +413,6 @@ public class PicasaSource extends PhotoSource {
                     if (data.thumbnailUrl == null || data.updated == updated) {
                         data.thumbnailUrl = thumbnailUrl;
                     }
-
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
@@ -402,9 +446,6 @@ public class PicasaSource extends PhotoSource {
             is = mResolver.openInputStream(photoUriBuilder.build());
         } catch (FileNotFoundException fnf) {
             log(TAG, "file not found: " + fnf);
-            is = null;
-        } catch (IOException ioe) {
-            log(TAG, "i/o exception: " + ioe);
             is = null;
         }
 

@@ -30,20 +30,20 @@ import java.util.Set;
 /**
  * Loads images from the local store.
  */
-public class LocalSource extends PhotoSource {
+public class LocalSource extends CursorPhotoSource {
     private static final String TAG = "PhotoTable.LocalSource";
 
     private final String mUnknownAlbumName;
     private final String mLocalSourceName;
     private Set<String> mFoundAlbumIds;
-    private int mNextPosition;
+    private int mLastPosition;
 
     public LocalSource(Context context, SharedPreferences settings) {
         super(context, settings);
         mLocalSourceName = mResources.getString(R.string.local_source_name, "Photos on Device");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         mSourceName = TAG;
-        mNextPosition = -1;
+        mLastPosition = INVALID;
         fillQueue();
     }
 
@@ -65,7 +65,7 @@ public class LocalSource extends PhotoSource {
         Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection, null, null, null);
         if (cursor != null) {
-            cursor.moveToFirst();
+            cursor.moveToPosition(-1);
 
             int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
             int bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
@@ -75,7 +75,7 @@ public class LocalSource extends PhotoSource {
             if (bucketIndex < 0) {
                 log(TAG, "can't find the ID column!");
             } else {
-                while (!cursor.isAfterLast()) {
+                while (cursor.moveToNext()) {
                     String id = TAG + ":" + cursor.getString(bucketIndex);
                     AlbumData data = foundAlbums.get(id);
                     if (foundAlbums.get(id) == null) {
@@ -102,7 +102,6 @@ public class LocalSource extends PhotoSource {
                                         updated :
                                         Math.min(data.updated, updated));
                     }
-                    cursor.moveToNext();
                 }
             }
             cursor.close();
@@ -111,6 +110,59 @@ public class LocalSource extends PhotoSource {
         log(TAG, "found " + foundAlbums.size() + " items.");
         mFoundAlbumIds = foundAlbums.keySet();
         return foundAlbums.values();
+    }
+
+    @Override
+    protected void openCursor(ImageData data) {
+        log(TAG, "opening single album");
+
+        String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.ORIENTATION,
+                MediaStore.Images.Media.BUCKET_ID, MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
+        String selection = MediaStore.Images.Media.BUCKET_ID + " = '" + data.albumId + "'";
+
+        data.cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection, selection, null, null);
+    }
+
+    @Override
+    protected void findPosition(ImageData data) {
+        if (data.position == -1) {
+            if (data.cursor == null) {
+                openCursor(data);
+            }
+            if (data.cursor != null) {
+                int dataIndex = data.cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+                data.cursor.moveToPosition(-1);
+                while (data.position == -1 && data.cursor.moveToNext()) {
+                    String url = data.cursor.getString(dataIndex);
+                    if (url != null && url.equals(data.url)) {
+                        data.position = data.cursor.getPosition();
+                    }
+                }
+                if (data.position == -1) {
+                    // oops!  The image isn't in this album. How did we get here?
+                    data.position = INVALID;
+                }
+            }
+        }
+    }
+
+    @Override
+    protected ImageData unpackImageData(Cursor cursor, ImageData data) {
+        if (data == null) {
+            data = new ImageData();
+        }
+        int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
+        int orientationIndex = cursor.getColumnIndex(MediaStore.Images.Media.ORIENTATION);
+        int bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
+
+        data.url = cursor.getString(dataIndex);
+        data.albumId = cursor.getString(bucketIndex);
+        data.position = UNINITIALIZED;
+        data.cursor = null;
+        data.orientation = cursor.getInt(orientationIndex);
+
+        return data;
     }
 
     @Override
@@ -139,33 +191,26 @@ public class LocalSource extends PhotoSource {
         Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection, selection, null, null);
         if (cursor != null) {
-            if (cursor.getCount() > howMany && mNextPosition == -1) {
-                mNextPosition = mRNG.nextInt() % (cursor.getCount() - howMany);
-            }
-            if (mNextPosition == -1) {
-                mNextPosition = 0;
-            }
-            cursor.moveToPosition(mNextPosition);
-
             int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
-            int orientationIndex = cursor.getColumnIndex(MediaStore.Images.Media.ORIENTATION);
-            int bucketIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_ID);
-            int nameIndex = cursor.getColumnIndex(MediaStore.Images.Media.BUCKET_DISPLAY_NAME);
+
+            if (cursor.getCount() > howMany && mLastPosition == INVALID) {
+                mLastPosition = pickRandomStart(cursor.getCount(), howMany);
+            }
+            cursor.moveToPosition(mLastPosition);
 
             if (dataIndex < 0) {
                 log(TAG, "can't find the DATA column!");
             } else {
-                while (foundImages.size() < howMany && !cursor.isAfterLast()) {
-                    ImageData data = new ImageData();
-                    data.url = cursor.getString(dataIndex);
-                    data.orientation = cursor.getInt(orientationIndex);
+                while (foundImages.size() < howMany && cursor.moveToNext()) {
+                    ImageData data = unpackImageData(cursor, null);
                     foundImages.offer(data);
-                    if (cursor.moveToNext()) {
-                        mNextPosition++;
-                    }
+                    mLastPosition = cursor.getPosition();
                 }
                 if (cursor.isAfterLast()) {
-                    mNextPosition = 0;
+                    mLastPosition = -1;
+                }
+                if (cursor.isBeforeFirst()) {
+                    mLastPosition = INVALID;
                 }
             }
 
@@ -189,3 +234,4 @@ public class LocalSource extends PhotoSource {
         return (InputStream) fis;
     }
 }
+

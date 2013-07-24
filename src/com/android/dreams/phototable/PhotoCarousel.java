@@ -20,7 +20,6 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.service.dreams.DreamService;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -80,7 +79,8 @@ public class PhotoCarousel extends FrameLayout {
                 scheduleNext((int) mDropPeriod - elapsed);
             } else {
                 scheduleNext(mDropPeriod);
-                if (changePhoto() || canFlip()) {
+                if (changePhoto() ||
+                        (elapsed > (5 * mDropPeriod) && canFlip())) {
                     flip(1f);
                     mLastFlipTime = now;
                 }
@@ -107,6 +107,7 @@ public class PhotoCarousel extends FrameLayout {
 
         mPanel = new View[2];
         mFlipper = new Flipper();
+        // this is dead code if the dream calls setInteractive(false)
         mGestureDetector = new GestureDetector(context,
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
@@ -183,22 +184,18 @@ public class PhotoCarousel extends FrameLayout {
         Bitmap photo = mBitmapQueue.poll();
         if (photo != null) {
             ImageView destination = getBackface();
-            Bitmap old = mBitmapStore.get(destination);
             int width = photo.getWidth();
             int height = photo.getHeight();
             int orientation = (width > height ? LANDSCAPE : PORTRAIT);
 
             destination.setImageBitmap(photo);
-            destination.setTag(R.id.photo_orientation, new Integer(orientation));
-            destination.setTag(R.id.photo_width, new Integer(width));
-            destination.setTag(R.id.photo_height, new Integer(height));
+            destination.setTag(R.id.photo_orientation, Integer.valueOf(orientation));
+            destination.setTag(R.id.photo_width, Integer.valueOf(width));
+            destination.setTag(R.id.photo_height, Integer.valueOf(height));
             setScaleType(destination);
 
-            mBitmapStore.put(destination, photo);
-
-            if (old != null) {
-                old.recycle();
-            }
+            Bitmap old = mBitmapStore.put(destination, photo);
+            mPhotoSource.recycle(old);
 
             return true;
         } else {
@@ -247,8 +244,8 @@ public class PhotoCarousel extends FrameLayout {
         frontA = 1f - frontA;
         backA = 1f - backA;
 
-	// Don't rotate
-	frontY = backY = 0f;
+        // Don't rotate
+        frontY = backY = 0f;
 
         ViewPropertyAnimator frontAnim = mPanel[0].animate()
                 .rotationY(frontY)
@@ -284,7 +281,6 @@ public class PhotoCarousel extends FrameLayout {
 
         mOrientation = (mWidth > mHeight ? LANDSCAPE : PORTRAIT);
 
-        boolean init = mLongSide == 0;
         mLongSide = (int) Math.max(mWidth, mHeight);
         mShortSide = (int) Math.min(mWidth, mHeight);
 

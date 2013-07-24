@@ -13,11 +13,9 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-  <!-- Parts per million ratio between image size and screen size. -->
-  <integer name="image_ratio">750000</integer>
-
-  <!-- Parts per million ratio between image size on the table and screen size. -->
-  <integer name="table_ratio">300000</integer>
-</resources>
-
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/photodream_menu_all"
+          android:title="@string/photodream_select_all"
+          android:showAsAction="ifRoom"
+          />
+</menu>

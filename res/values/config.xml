@@ -18,7 +18,7 @@
   <integer name="table_drop_period">45000</integer>
 
   <!-- Milliseconds to wait before the next fast drop.-->
-  <integer name="fast_drop">4000</integer>
+  <integer name="fast_drop">3000</integer>
 
   <!-- Milliseconds between drops. -->
   <integer name="carousel_drop_period">10000</integer>
@@ -33,7 +33,7 @@
   <integer name="table_capacity">10</integer>
 
   <!-- Number of images to discard at a time.-->
-  <integer name="redeal_count">3</integer>
+  <integer name="redeal_count">5</integer>
 
   <!-- Parts per million ratio between image size and screen size. -->
   <integer name="image_ratio">500000</integer>
@@ -85,5 +85,29 @@
 
   <!-- Number of images to pre-load. -->
   <integer name="num_images_to_preload">5</integer>
+
+  <!-- distance from edge to start a valid edge swipe as a fraction of
+  touch area width, in parts per million from 0 to 1. -->
+  <integer name="table_edge_swipe_gutter">50000</integer>
+
+  <!-- minimum length of a valid edge swipe as a fraction of
+  touch area width, in parts per million from 0 to 1. -->
+  <integer name="table_edge_swipe_threshold">100000</integer>
+
+  <!-- Parts per million gain applied to generalized touch gestures. -->
+  <integer name="generalized_touch_gain">2000000</integer>
+
+  <!-- Enable story mode. -->
+  <bool name="enable_story_mode">true</bool>
+
+  <!-- Duration in milliseconds for the pickup animation. -->
+  <integer name="photo_pickup_duration">1000</integer>
+
+  <!-- Milliseconds that the selection will remain without user interaction. -->
+  <integer name="max_selection_time">30000</integer>
+
+  <!-- Milliseconds that the focus will remain without user interaction. -->
+  <integer name="max_focus_time">5000</integer>
+
 </resources>
 

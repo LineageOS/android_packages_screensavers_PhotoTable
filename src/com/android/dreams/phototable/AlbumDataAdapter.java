@@ -17,7 +17,6 @@ package com.android.dreams.phototable;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.text.SpannableString;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,7 +29,6 @@ import android.widget.TextView;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Settings panel for photo flipping dream.
@@ -45,6 +43,7 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
     private final LayoutInflater mInflater;
     private final int mLayout;
     private final ItemClickListener mListener;
+    private final HashSet<String> mValidAlbumIds;
 
     public AlbumDataAdapter(Context context, SharedPreferences settings,
             int resource, List<PhotoSource.AlbumData> objects) {
@@ -54,11 +53,29 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mListener = new ItemClickListener();
 
-        HashSet<String> validAlbumIds = new HashSet<String>(objects.size());
+        mValidAlbumIds = new HashSet<String>(objects.size());
         for (PhotoSource.AlbumData albumData: objects) {
-            validAlbumIds.add(albumData.id);
+            mValidAlbumIds.add(albumData.id);
         }
-        mSettings.pruneObsoleteSettings(validAlbumIds);
+        mSettings.pruneObsoleteSettings(mValidAlbumIds);
+    }
+
+    public boolean isSelected(int position) {
+        PhotoSource.AlbumData data = getItem(position);
+        return mSettings.isAlbumEnabled(data.id);
+    }
+
+    public boolean areAllSelected() {
+        return mSettings.areAllEnabled(mValidAlbumIds);
+    }
+
+    public void selectAll(boolean select) {
+        if (select) {
+            mSettings.enableAllAlbums(mValidAlbumIds);
+        } else {
+            mSettings.disableAllAlbums();
+        }
+        notifyDataSetChanged();
     }
 
     @Override
@@ -72,7 +89,7 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
         View vCheckBox = item.findViewById(R.id.enabled);
         if (vCheckBox != null && vCheckBox instanceof CheckBox) {
             CheckBox checkBox = (CheckBox) vCheckBox;
-            checkBox.setChecked(mSettings.isAlbumEnabled(data.id));
+            checkBox.setChecked(isSelected(position));
             checkBox.setTag(R.id.data_payload, data);
         }
 
@@ -159,6 +176,7 @@ public class AlbumDataAdapter extends ArrayAdapter<PhotoSource.AlbumData> {
                 final boolean isChecked = !checkBox.isChecked();
                 checkBox.setChecked(isChecked);
                 mSettings.setAlbumEnabled(data.id, isChecked);
+                notifyDataSetChanged();
                 if (DEBUG) Log.i(TAG, data.title + " is " +
                                  (isChecked ? "" : "not") + " enabled");
             } else {

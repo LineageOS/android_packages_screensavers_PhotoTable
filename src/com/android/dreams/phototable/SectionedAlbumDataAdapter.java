@@ -21,10 +21,9 @@ import android.database.DataSetObserver;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
-import android.widget.TextView;
 import android.widget.ListAdapter;
+import android.widget.TextView;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,18 +38,26 @@ public class SectionedAlbumDataAdapter extends DataSetObserver implements ListAd
     private final LayoutInflater mInflater;
     private final int mLayout;
     private final AlbumDataAdapter mAlbumData;
-    private final Context mContext;
     private int[] sections;
 
     public SectionedAlbumDataAdapter(Context context, SharedPreferences settings,
             int headerLayout, int itemLayout, List<PhotoSource.AlbumData> objects) {
         mLayout = headerLayout;
-        mContext = context;
         mInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mAlbumData = new AlbumDataAdapter(context, settings, itemLayout, objects);
         mAlbumData.sort(new AlbumDataAdapter.AccountComparator());
         onChanged();
         mAlbumData.registerDataSetObserver(this);
+    }
+
+    boolean areAllSelected() {
+        return mAlbumData != null && mAlbumData.areAllSelected();
+    }
+
+    void selectAll(boolean select) {
+        if (mAlbumData != null) {
+            mAlbumData.selectAll(select);
+        }
     }
 
     // DataSetObserver
