@@ -23,6 +23,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.net.Uri;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -54,6 +55,7 @@ public abstract class PhotoSource {
         protected String albumId;
         protected Cursor cursor;
         protected int position;
+        protected Uri uri;
 
         InputStream getStream(int longSide) {
             return PhotoSource.this.getStream(this, longSide);

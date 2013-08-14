@@ -18,6 +18,7 @@ package com.android.dreams.phototable;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.net.Uri;
 import android.provider.MediaStore;
 
 import java.io.FileInputStream;
@@ -58,12 +59,21 @@ public class LocalSource extends CursorPhotoSource {
     public Collection<AlbumData> findAlbums() {
         log(TAG, "finding albums");
         HashMap<String, AlbumData> foundAlbums = new HashMap<String, AlbumData>();
+        findAlbums(false, foundAlbums);
+        findAlbums(true, foundAlbums);
 
+        log(TAG, "found " + foundAlbums.size() + " items.");
+        mFoundAlbumIds = foundAlbums.keySet();
+        return foundAlbums.values();
+    }
+
+    public void findAlbums(boolean internal, HashMap<String, AlbumData> foundAlbums) {
+        Uri uri = internal ? MediaStore.Images.Media.INTERNAL_CONTENT_URI
+            : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.BUCKET_ID,
                 MediaStore.Images.Media.BUCKET_DISPLAY_NAME, MediaStore.Images.Media.DATE_TAKEN};
         // This is a horrible hack that closes the where clause and injects a grouping clause.
-        Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection, null, null, null);
+        Cursor cursor = mResolver.query(uri, projection, null, null, null);
         if (cursor != null) {
             cursor.moveToPosition(-1);
 
@@ -76,7 +86,7 @@ public class LocalSource extends CursorPhotoSource {
                 log(TAG, "can't find the ID column!");
             } else {
                 while (cursor.moveToNext()) {
-                    String id = TAG + ":" + cursor.getString(bucketIndex);
+                    String id = constructId(internal, cursor.getString(bucketIndex));
                     AlbumData data = foundAlbums.get(id);
                     if (foundAlbums.get(id) == null) {
                         data = new AlbumData();
@@ -105,11 +115,11 @@ public class LocalSource extends CursorPhotoSource {
                 }
             }
             cursor.close();
-
         }
-        log(TAG, "found " + foundAlbums.size() + " items.");
-        mFoundAlbumIds = foundAlbums.keySet();
-        return foundAlbums.values();
+    }
+
+    public static String constructId(boolean internal, String bucketId) {
+        return TAG + ":" + bucketId + (internal ? ":i" : "");
     }
 
     @Override
@@ -120,8 +130,7 @@ public class LocalSource extends CursorPhotoSource {
                 MediaStore.Images.Media.BUCKET_ID, MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
         String selection = MediaStore.Images.Media.BUCKET_ID + " = '" + data.albumId + "'";
 
-        data.cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection, selection, null, null);
+        data.cursor = mResolver.query(data.uri, projection, selection, null, null);
     }
 
     @Override
@@ -169,12 +178,21 @@ public class LocalSource extends CursorPhotoSource {
     protected Collection<ImageData> findImages(int howMany) {
         log(TAG, "finding images");
         LinkedList<ImageData> foundImages = new LinkedList<ImageData>();
+        boolean internalFirst = mRNG.nextInt(2) == 0;  // filp a coin to be fair
+        findImages(internalFirst, howMany, foundImages);
+        findImages(!internalFirst, howMany - foundImages.size(), foundImages);
+        log(TAG, "found " + foundImages.size() + " items.");
+        return foundImages;
+    }
 
+    protected void findImages(boolean internal, int howMany, LinkedList<ImageData> foundImages ) {
+        Uri uri = internal ? MediaStore.Images.Media.INTERNAL_CONTENT_URI
+            : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
         String[] projection = {MediaStore.Images.Media.DATA, MediaStore.Images.Media.ORIENTATION,
                 MediaStore.Images.Media.BUCKET_ID, MediaStore.Images.Media.BUCKET_DISPLAY_NAME};
         String selection = "";
         for (String id : getFoundAlbums()) {
-            if (mSettings.isAlbumEnabled(id)) {
+            if (isInternalId(id) == internal && mSettings.isAlbumEnabled(id)) {
                 String[] parts = id.split(":");
                 if (parts.length > 1) {
                     if (selection.length() > 0) {
@@ -185,11 +203,9 @@ public class LocalSource extends CursorPhotoSource {
             }
         }
         if (selection.isEmpty()) {
-            return foundImages;
+            return;
         }
-
-        Cursor cursor = mResolver.query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                projection, selection, null, null);
+        Cursor cursor = mResolver.query(uri, projection, selection, null, null);
         if (cursor != null) {
             int dataIndex = cursor.getColumnIndex(MediaStore.Images.Media.DATA);
 
@@ -203,6 +219,7 @@ public class LocalSource extends CursorPhotoSource {
             } else {
                 while (foundImages.size() < howMany && cursor.moveToNext()) {
                     ImageData data = unpackImageData(cursor, null);
+                    data.uri = uri;
                     foundImages.offer(data);
                     mLastPosition = cursor.getPosition();
                 }
@@ -216,8 +233,10 @@ public class LocalSource extends CursorPhotoSource {
 
             cursor.close();
         }
-        log(TAG, "found " + foundImages.size() + " items.");
-        return foundImages;
+    }
+
+    private boolean isInternalId(String id) {
+        return id.endsWith("i");
     }
 
     @Override
