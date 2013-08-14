@@ -354,7 +354,7 @@ public class PicasaSource extends CursorPhotoSource {
                 log(TAG, "can't find the ID column!");
             } else {
                 while (cursor.moveToNext()) {
-                    String id = TAG + ":" + cursor.getString(idIndex);
+                    String id = constructId(cursor.getString(idIndex));
                     String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
                     String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
                     boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
@@ -369,12 +369,12 @@ public class PicasaSource extends CursorPhotoSource {
 
                     if (isPosts) {
                         log(TAG, "replacing " + id + " with " + PICASA_POSTS_TYPE);
-                        id = TAG + ":" + PICASA_POSTS_TYPE + ":" + user;
+                        id = constructId(PICASA_POSTS_TYPE + ":" + user);
                     }
 
                     if (isUpload) {
                         log(TAG, "replacing " + id + " with " + PICASA_UPLOAD_TYPE);
-                        id = TAG + ":" + PICASA_UPLOAD_TYPE + ":" + user;
+                        id = constructId(PICASA_UPLOAD_TYPE + ":" + user);
                     }
 
                     String thumbnailUrl = null;
@@ -423,6 +423,10 @@ public class PicasaSource extends CursorPhotoSource {
         log(TAG, "found " + foundAlbums.size() + " items.");
         mFoundAlbumIds = foundAlbums.keySet();
         return foundAlbums.values();
+    }
+
+    public static String constructId(String serverId) {
+        return  TAG + ":" + serverId;
     }
 
     @Override
