@@ -28,6 +28,7 @@ public class PhotoDreamSettingsReceiver extends BroadcastReceiver {
     private static final String TAG = "PhotoDreamSettingsReceiver";
     private static final String LOCAL_AUTHORITY = "media";
     private static final String INTERNAL = "internal";
+    private static final boolean DEBUG = false;
 
     public static final String ACTION_ADD_ALBUM = "add";
     public static final String ACTION_REMOVE_ALBUM = "remove";
@@ -59,7 +60,7 @@ public class PhotoDreamSettingsReceiver extends BroadcastReceiver {
                     albumId = PicasaSource.constructId(path.get(1));
                 }
             }
-
+            if (DEBUG) Log.d(TAG, "receive: " + albumId + " is " + shown);
             for (int idx = 0; idx < settings.length; idx++) {
                 settings[idx].setAlbumEnabled(albumId, shown);
             }

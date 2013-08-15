@@ -286,7 +286,9 @@ public class PhotoTable extends FrameLayout {
     }
 
     public void setDefaultFocus() {
-        setFocus(mOnTable.getLast());
+        if (mOnTable.size() > 0) {
+            setFocus(mOnTable.getLast());
+        }
     }
 
     public void setFocus(View focus) {
@@ -356,7 +358,9 @@ public class PhotoTable extends FrameLayout {
 
     public View moveFocus(View focus, float direction, float angle) {
         if (focus == null) {
-            setFocus(mOnTable.getLast());
+            if (mOnTable.size() > 0) {
+                setFocus(mOnTable.getLast());
+            }
         } else {
             final double alpha = Math.toRadians(direction);
             final double beta = Math.toRadians(Math.min(angle, 180f) / 2f);
