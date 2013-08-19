@@ -67,7 +67,6 @@ public class PicasaSource extends CursorPhotoSource {
 
     private final int mMaxPostAblums;
     private final String mPostsAlbumName;
-    private final String mUploadsAlbumName;
     private final String mUnknownAlbumName;
     private final LinkedList<ImageData> mRecycleBin;
     private final ConnectivityManager mConnectivityManager;
@@ -83,7 +82,6 @@ public class PicasaSource extends CursorPhotoSource {
         mLastPosition = INVALID;
         mMaxPostAblums = mResources.getInteger(R.integer.max_post_albums);
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
-        mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         mMaxRecycleSize = mResources.getInteger(R.integer.recycle_image_pool_size);
         mConnectivityManager =
@@ -387,8 +385,6 @@ public class PicasaSource extends CursorPhotoSource {
 
                         if (isPosts) {
                             data.title = mPostsAlbumName;
-                        } else if (isUpload) {
-                            data.title = mUploadsAlbumName;
                         } else if (titleIndex >= 0) {
                             data.title = cursor.getString(titleIndex);
                         } else {
