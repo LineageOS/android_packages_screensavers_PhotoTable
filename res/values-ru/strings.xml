@@ -20,9 +20,11 @@
     <string name="table_screensaver_name" msgid="1150228032617397055">"Коллаж"</string>
     <string name="flipper_screensaver_name" msgid="6988572107391523141">"Рамка"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Фото из записей"</string>
-    <string name="uploads_album_name" msgid="4057519060978630370">"Фото с телефона"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"Альбом без названия"</string>
     <string name="stock_photo_album_name" msgid="3150527596227525460">"Снимки из фотобанков"</string>
     <string name="local_source_name" msgid="6487253091085518505">"Фото на устройстве"</string>
     <string name="need_to_configure" msgid="1269102638159389032">"Ничего не выбрано"</string>
+    <string name="photodream_select_all" msgid="6364858563337927827">"Выбрать все"</string>
+    <string name="photodream_select_none" msgid="8816452124894525861">"Отменить выбор"</string>
+    <string name="no_photos" msgid="4262083523147564199">"На устройстве нет фотографий."</string>
 </resources>
