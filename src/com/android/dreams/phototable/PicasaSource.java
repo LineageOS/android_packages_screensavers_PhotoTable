@@ -371,8 +371,12 @@ public class PicasaSource extends CursorPhotoSource {
                     }
 
                     if (isUpload) {
-                        log(TAG, "replacing " + id + " with " + PICASA_UPLOAD_TYPE);
-                        id = constructId(PICASA_UPLOAD_TYPE + ":" + user);
+                        // check for old-style name for this album, and upgrade settings.
+                        String uploadId = constructId(PICASA_UPLOAD_TYPE + ":" + user);
+                        if (mSettings.isAlbumEnabled(uploadId)) {
+                            mSettings.setAlbumEnabled(uploadId, false);
+                            mSettings.setAlbumEnabled(id, true);
+                        }
                     }
 
                     String thumbnailUrl = null;
