@@ -20,9 +20,11 @@
     <string name="table_screensaver_name" msgid="1150228032617397055">"Jedwali la Picha"</string>
     <string name="flipper_screensaver_name" msgid="6988572107391523141">"Fremu ya Picha"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Picha kutoka kwenye Machapisho"</string>
-    <string name="uploads_album_name" msgid="4057519060978630370">"Vipakiaji vya Papo hapo"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"Albamu Isiyo na Jina"</string>
     <string name="stock_photo_album_name" msgid="3150527596227525460">"Picha za Akiba"</string>
     <string name="local_source_name" msgid="6487253091085518505">"Picha katika Kifaa"</string>
     <string name="need_to_configure" msgid="1269102638159389032">"Hakuna picha zilizochaguliwa."</string>
+    <string name="photodream_select_all" msgid="6364858563337927827">"Chagua Zote"</string>
+    <string name="photodream_select_none" msgid="8816452124894525861">"Usichague yoyote"</string>
+    <string name="no_photos" msgid="4262083523147564199">"Hakuna picha kwenye kifaa."</string>
 </resources>
