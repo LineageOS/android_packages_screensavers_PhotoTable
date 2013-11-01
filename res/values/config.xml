@@ -109,5 +109,8 @@
   <!-- Milliseconds that the focus will remain without user interaction. -->
   <integer name="max_focus_time">5000</integer>
 
+  <!-- Enable hardware layer optimization (interferes with dragging). -->
+  <bool name="enable_background_optimization">false</bool>
+
 </resources>
 

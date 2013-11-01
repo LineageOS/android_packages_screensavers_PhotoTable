@@ -67,7 +67,6 @@ public class PicasaSource extends CursorPhotoSource {
 
     private final int mMaxPostAblums;
     private final String mPostsAlbumName;
-    private final String mUploadsAlbumName;
     private final String mUnknownAlbumName;
     private final LinkedList<ImageData> mRecycleBin;
     private final ConnectivityManager mConnectivityManager;
@@ -83,7 +82,6 @@ public class PicasaSource extends CursorPhotoSource {
         mLastPosition = INVALID;
         mMaxPostAblums = mResources.getInteger(R.integer.max_post_albums);
         mPostsAlbumName = mResources.getString(R.string.posts_album_name, "Posts");
-        mUploadsAlbumName = mResources.getString(R.string.uploads_album_name, "Instant Uploads");
         mUnknownAlbumName = mResources.getString(R.string.unknown_album_name, "Unknown");
         mMaxRecycleSize = mResources.getInteger(R.integer.recycle_image_pool_size);
         mConnectivityManager =
@@ -354,7 +352,7 @@ public class PicasaSource extends CursorPhotoSource {
                 log(TAG, "can't find the ID column!");
             } else {
                 while (cursor.moveToNext()) {
-                    String id = TAG + ":" + cursor.getString(idIndex);
+                    String id = constructId(cursor.getString(idIndex));
                     String user = (userIndex >= 0 ? cursor.getString(userIndex) : "-1");
                     String type = (typeIndex >= 0 ? cursor.getString(typeIndex) : "none");
                     boolean isPosts = (typeIndex >= 0 && PICASA_POSTS_TYPE.equals(type));
@@ -369,12 +367,16 @@ public class PicasaSource extends CursorPhotoSource {
 
                     if (isPosts) {
                         log(TAG, "replacing " + id + " with " + PICASA_POSTS_TYPE);
-                        id = TAG + ":" + PICASA_POSTS_TYPE + ":" + user;
+                        id = constructId(PICASA_POSTS_TYPE + ":" + user);
                     }
 
                     if (isUpload) {
-                        log(TAG, "replacing " + id + " with " + PICASA_UPLOAD_TYPE);
-                        id = TAG + ":" + PICASA_UPLOAD_TYPE + ":" + user;
+                        // check for old-style name for this album, and upgrade settings.
+                        String uploadId = constructId(PICASA_UPLOAD_TYPE + ":" + user);
+                        if (mSettings.isAlbumEnabled(uploadId)) {
+                            mSettings.setAlbumEnabled(uploadId, false);
+                            mSettings.setAlbumEnabled(id, true);
+                        }
                     }
 
                     String thumbnailUrl = null;
@@ -387,8 +389,6 @@ public class PicasaSource extends CursorPhotoSource {
 
                         if (isPosts) {
                             data.title = mPostsAlbumName;
-                        } else if (isUpload) {
-                            data.title = mUploadsAlbumName;
                         } else if (titleIndex >= 0) {
                             data.title = cursor.getString(titleIndex);
                         } else {
@@ -423,6 +423,10 @@ public class PicasaSource extends CursorPhotoSource {
         log(TAG, "found " + foundAlbums.size() + " items.");
         mFoundAlbumIds = foundAlbums.keySet();
         return foundAlbums.values();
+    }
+
+    public static String constructId(String serverId) {
+        return  TAG + ":" + serverId;
     }
 
     @Override
