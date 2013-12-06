@@ -108,7 +108,9 @@ public class FlipperDreamSettings extends ListActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.photodream_menu_all:
-            mAdapter.selectAll(!mAdapter.areAllSelected());
+            if (mAdapter != null) {
+                mAdapter.selectAll(!mAdapter.areAllSelected());
+            }
             return true;
         default:
             return super.onOptionsItemSelected(item);
