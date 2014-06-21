@@ -15,6 +15,15 @@
      limitations under the License.
 -->
 <resources>
+  <string name="app_name">Schiermschounere mat Fotoen</string>
   <string name="table_screensaver_name">Fotodësch</string>
   <string name="flipper_screensaver_name">Fotorumm</string>
+  <string name="posts_album_name">Fotoen aus Bäiträg</string>
+  <string name="unknown_album_name">Onbenannten Album</string>
+  <string name="stock_photo_album_name">Inventarfotoen</string>
+  <string name="local_source_name">Fotoen um Apparat</string>
+  <string name="need_to_configure">Keng Fotoen ausgewielt.</string>
+  <string name="photodream_select_all">All auswielen</string>
+  <string name="photodream_select_none">Auswiel ophiewen</string>
+  <string name="no_photos">Keng Fotoen um Apparat.</string>
 </resources>
