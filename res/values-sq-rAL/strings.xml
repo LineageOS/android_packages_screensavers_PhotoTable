@@ -17,19 +17,14 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="6441943862284988546">"Mbrojtësit e ekranit në fotografi"</string>
-    <!-- no translation found for table_screensaver_name (1150228032617397055) -->
-    <skip />
+    <string name="table_screensaver_name" msgid="1150228032617397055">"Tavolina e fotove"</string>
     <string name="flipper_screensaver_name" msgid="6988572107391523141">"Korniza e fotos"</string>
-    <!-- no translation found for posts_album_name (5628151551239729515) -->
-    <skip />
-    <!-- no translation found for unknown_album_name (2135521368192091267) -->
-    <skip />
+    <string name="posts_album_name" msgid="5628151551239729515">"Foto nga postimet"</string>
+    <string name="unknown_album_name" msgid="2135521368192091267">"Album pa emër"</string>
     <string name="stock_photo_album_name" msgid="3150527596227525460">"Ruaj fotot"</string>
-    <!-- no translation found for local_source_name (6487253091085518505) -->
-    <skip />
+    <string name="local_source_name" msgid="6487253091085518505">"Foto në pajisje"</string>
     <string name="need_to_configure" msgid="1269102638159389032">"Nuk u zgjodh asnjë fotografi."</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"Zgjidhi të gjitha"</string>
     <string name="photodream_select_none" msgid="8816452124894525861">"Çzgjidhi të gjitha"</string>
-    <!-- no translation found for no_photos (4262083523147564199) -->
-    <skip />
+    <string name="no_photos" msgid="4262083523147564199">"Nuk ka fotografi në pajisje."</string>
 </resources>
