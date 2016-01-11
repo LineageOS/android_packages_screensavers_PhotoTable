@@ -17,6 +17,7 @@ package com.android.dreams.phototable;
 
 import android.app.ListActivity;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.database.DataSetObserver;
 import android.os.AsyncTask;
 import android.os.AsyncTask.Status;
@@ -25,6 +26,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Toast;
+import android.Manifest;
 
 import java.util.LinkedList;
 
@@ -56,7 +59,44 @@ public class FlipperDreamSettings extends ListActivity {
         init();
     }
 
+    private static final int REQUEST_CODE_STORAGE_PERMS = 321;
+    private boolean hasPermissions() {
+        int res = checkCallingOrSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+        return (res == PackageManager.PERMISSION_GRANTED);
+    }
+
+    private void requestNecessaryPermissions() {
+        String[] permissions = new String[] {
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+        };
+        requestPermissions(permissions, REQUEST_CODE_STORAGE_PERMS);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            int[] grandResults) {
+        boolean allowed = true;
+        switch (requestCode) {
+            case REQUEST_CODE_STORAGE_PERMS:
+                for (int res : grandResults) {
+                    allowed = allowed && (res == PackageManager.PERMISSION_GRANTED);
+                }
+                break;
+            default:
+                allowed = false;
+                break;
+        }
+        if (!allowed) {
+            String text = getResources().getString(R.string.storage_permissions_denied);
+            Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+            finish();
+        }
+    }
     protected void init() {
+        if (!hasPermissions()) {
+            requestNecessaryPermissions();
+            return;
+        }
         mPhotoSource = new PhotoSourcePlexor(this, mSettings);
         setContentView(R.layout.settingslist);
         if (mLoadingTask != null && mLoadingTask.getStatus() != Status.FINISHED) {
