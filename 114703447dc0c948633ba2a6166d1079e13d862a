@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "1fcbff3d_fdf9054d",
+        "filename": "src/com/android/dreams/phototable/FlipperDreamSettings.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 1448
+      },
+      "writtenOn": "2016-01-16T04:43:01Z",
+      "side": 1,
+      "message": "Manifest.permission.READ_EXTERNAL_STORAGE",
+      "range": {
+        "startLine": 63,
+        "startChar": 69,
+        "endLine": 63,
+        "endChar": 71
+      },
+      "revId": "114703447dc0c948633ba2a6166d1079e13d862a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "1fcbff3d_9d9481ea",
+        "filename": "src/com/android/dreams/phototable/FlipperDreamSettings.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 70,
+      "author": {
+        "id": 1448
+      },
+      "writtenOn": "2016-01-16T04:43:01Z",
+      "side": 1,
+      "message": "same",
+      "range": {
+        "startLine": 70,
+        "startChar": 57,
+        "endLine": 70,
+        "endChar": 58
+      },
+      "revId": "114703447dc0c948633ba2a6166d1079e13d862a",
+      "serverId": "1ec6b3db-b2c1-4fa4-84a2-4c7efe89ba71",
+      "unresolved": false
+    }
+  ]
+}
