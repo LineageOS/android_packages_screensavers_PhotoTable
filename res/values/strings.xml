@@ -46,6 +46,4 @@
 
     <!-- Text shown instead of a list of albums when there are no albums with photos. [CHAR LIMIT=50] -->
     <string name="no_photos">No photos on the device.</string>
-
-    <string name="storage_permissions_denied">Storage permissions denied!</string>
 </resources>
