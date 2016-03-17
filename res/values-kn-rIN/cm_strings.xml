@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Приложение не может работать без разрешения на чтение внешнего накопителя.</string>
+  <string name="storage_permissions_denied">ಬಾಹ್ಯ ಸಂಗ್ರಹವನ್ನು ಓದಲು ಪರವಾನಗಿ ಇಲ್ಲದೇ ಅಪ್ಲಿಕೇಶನ್‌ ರನ್‌ ಆಗುವುದಿಲ್ಲ.</string>
 </resources>
