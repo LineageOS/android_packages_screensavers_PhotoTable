@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Приложение не может работать без разрешения на чтение внешнего накопителя.</string>
+  <string name="storage_permissions_denied">ବାହ୍ୟ ଷ୍ଟୋରେଜ୍‍ ପଢିବା ପାଇଁ ଅନୁମତି ବିନା ଆପ୍ଲିକେସନ୍‍ ଚାଲିପାରିବ ନାହିଁ.</string>
 </resources>
