@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">應用程式無法在沒有讀取外置儲存空間權限的情況下運行。</string>
+  <string name="storage_permissions_denied">應用程式無法在沒有讀取外部儲存空間權限的情況下執行。</string>
 </resources>
