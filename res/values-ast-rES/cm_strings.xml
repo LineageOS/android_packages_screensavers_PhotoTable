@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">L\'aplicación nun pue executase ensin el permisu d\'escritura nel almacenamientu internu.</string>
+  <string name="storage_permissions_denied">L\'aplicación nun pue executase ensin el permisu de llectura nel almacenamientu internu.</string>
 </resources>

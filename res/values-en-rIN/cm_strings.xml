@@ -15,4 +15,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources></resources>
+<resources>
+  <string name="storage_permissions_denied">The app cannot run without permission to read the external storage.</string>
+</resources>
