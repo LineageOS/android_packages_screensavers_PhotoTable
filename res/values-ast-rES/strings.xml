@@ -16,22 +16,16 @@
 -->
 <resources>
   <!-- Name of the package of photo screensavers, shown in for Settings > Apps. [CHAR LIMIT=40] -->
-  <string name="app_name">Curiapantalles de semeyes</string>
   <!-- Name of the Photo Table screensaver, which tosses photos onto a table. [CHAR LIMIT=40] -->
-  <string name="table_screensaver_name">Tabla de semeyes</string>
   <!-- Name of the Photo Frame screensaver, which cross-fades between images. [CHAR LIMIT=40] -->
-  <string name="flipper_screensaver_name">Marcu de semeyes</string>
   <!-- Name of the album that contains all g+ post photos, copy from Gallery. -->
-  <string name="posts_album_name">Semeyes d\'espublizaciones</string>
   <!-- Name for an album that doesn't seem to have any name at all. -->
-  <string name="unknown_album_name">Álbum ensin nome</string>
   <!-- Name for photos baked into the app. -->
   <!-- Name for photos that are stored on this device, copy from Gallery. -->
   <string name="local_source_name">Semeyes nel preséu</string>
   <!-- Instruct the user to configure the screensaver in settings to see photos. -->
+  <string name="need_to_configure">Nun s\'esbillaron semeyes.</string>
   <!-- Click to select all albums in the album selection activity. [CHAR LIMIT=15] -->
-  <string name="photodream_select_all">Esbillar too</string>
   <!-- Click to clear selection in the album selection activity. [CHAR LIMIT=15] -->
   <!-- Text shown instead of a list of albums when there are no albums with photos. [CHAR LIMIT=50] -->
-  <string name="no_photos">Nun hai semeyes nel preséu.</string>
 </resources>
