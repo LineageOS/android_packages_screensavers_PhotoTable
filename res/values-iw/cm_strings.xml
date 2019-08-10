@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">היישום אינו יכול לרוץ ללא הרשאה לקריאת האחסון החיצוני.</string>
+    <string name="storage_permissions_denied">היישום אינו יכול לרוץ ללא הרשאה לקריאת האחסון החיצוני.</string>
 </resources>

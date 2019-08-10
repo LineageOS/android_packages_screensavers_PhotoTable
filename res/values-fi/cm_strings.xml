@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Sovellusta ei voida suorittaa ilman lupaa lukea ulkoista tallennustilaa.</string>
+    <string name="storage_permissions_denied">Sovellusta ei voida suorittaa ilman lupaa lukea ulkoista tallennustilaa.</string>
 </resources>

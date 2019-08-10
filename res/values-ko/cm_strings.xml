@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">외부 저장소 쓰기 권한이 없어 앱을 실행할 수 없습니다.</string>
+    <string name="storage_permissions_denied">외부 저장소 쓰기 권한이 없어 앱을 실행할 수 없습니다.</string>
 </resources>

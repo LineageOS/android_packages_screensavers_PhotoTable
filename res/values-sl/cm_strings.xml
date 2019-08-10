@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Ta aplikacija ne deluje brez dovoljenja za branje zunanje pomnilniške naprave.</string>
+    <string name="storage_permissions_denied">Ta aplikacija ne deluje brez dovoljenja za branje zunanje pomnilniške naprave.</string>
 </resources>

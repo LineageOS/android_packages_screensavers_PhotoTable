@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Die toep kan nie hardloop sonder toegang na eksterne stoor spasie nie.</string>
+    <string name="storage_permissions_denied">Die toep kan nie hardloop sonder toegang na eksterne stoor spasie nie.</string>
 </resources>

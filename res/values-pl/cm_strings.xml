@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Aplikacja nie może zostać uruchomiona bez uprawnień do zapisu do pamięci zewnętrznej.</string>
+    <string name="storage_permissions_denied">Aplikacja nie może zostać uruchomiona bez uprawnień do zapisu do pamięci zewnętrznej.</string>
 </resources>

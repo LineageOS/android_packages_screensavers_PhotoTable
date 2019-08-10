@@ -15,4 +15,6 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources></resources>
+<resources>
+    <string name="storage_permissions_denied">Ni all yr ap redeg heb ganiatâd i ddarllen y storfa allanol.</string>
+</resources>

@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Az alkalmazás nem futtatható a külső tárolóról való olvasási engedély nélkül.</string>
+    <string name="storage_permissions_denied">Az alkalmazás nem futtatható a külső tárolóról való olvasási engedély nélkül.</string>
 </resources>

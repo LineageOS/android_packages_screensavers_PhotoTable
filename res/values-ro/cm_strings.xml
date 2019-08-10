@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Aplicația nu poate rula fără permisiunea de citire a stocării externe.</string>
+    <string name="storage_permissions_denied">Aplicația nu poate rula fără permisiunea de citire a stocării externe.</string>
 </resources>

@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Uygulama, harici depolamayı okuma izni olmadan çalışmaz.</string>
+    <string name="storage_permissions_denied">Uygulama, harici depolamayı okuma izni olmadan çalışmaz.</string>
 </resources>

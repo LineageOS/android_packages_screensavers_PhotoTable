@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">De app werkt niet zonder machtiging om de externe opslag te lezen.</string>
+    <string name="storage_permissions_denied">De app werkt niet zonder machtiging om de externe opslag te lezen.</string>
 </resources>

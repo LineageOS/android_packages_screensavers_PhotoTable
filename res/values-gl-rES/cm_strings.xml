@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">A aplicación non se pode executar sen permisos para ler do almacenamento externo.</string>
+    <string name="storage_permissions_denied">A aplicación non se pode executar sen permisos para ler do almacenamento externo.</string>
 </resources>

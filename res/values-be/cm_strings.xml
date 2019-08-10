@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Дадатак не можа працаваць без дазволу на запіс знешняга назапашвальніка.</string>
+    <string name="storage_permissions_denied">Дадатак не можа працаваць без дазволу на запіс знешняга назапашвальніка.</string>
 </resources>

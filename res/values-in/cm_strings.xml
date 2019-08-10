@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Aplikasi tidak dapat berjalan tanpa izin untuk membaca penyimpanan eksternal.</string>
+    <string name="storage_permissions_denied">Aplikasi tidak dapat berjalan tanpa izin untuk membaca penyimpanan eksternal.</string>
 </resources>

@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Апликацију није могуће покренути без дозволе да чита спољно складиште.</string>
+    <string name="storage_permissions_denied">Апликацију није могуће покренути без дозволе да чита спољно складиште.</string>
 </resources>

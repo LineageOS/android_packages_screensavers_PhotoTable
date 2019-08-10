@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Appen kan ikke kjøre uten tillatelse til å lese den eksterne lagringen.</string>
+    <string name="storage_permissions_denied">Appen kan ikke kjøre uten tillatelse til å lese den eksterne lagringen.</string>
 </resources>

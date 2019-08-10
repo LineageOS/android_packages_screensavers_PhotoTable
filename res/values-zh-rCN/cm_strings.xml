@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">此应用不能在没有读取外部存储权限的情况下运行。</string>
+    <string name="storage_permissions_denied">此应用不能在没有读取外部存储权限的情况下运行。</string>
 </resources>

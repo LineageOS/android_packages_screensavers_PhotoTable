@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Dës App kann net ouni Berechtegung fir d\'Liese vum externe Späicher ausgeféiert ginn.</string>
+    <string name="storage_permissions_denied">Dës App kann net ouni Berechtegung fir d\'Liese vum externe Späicher ausgeféiert ginn.</string>
 </resources>

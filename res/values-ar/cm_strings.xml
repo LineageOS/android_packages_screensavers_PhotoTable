@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">التطبيق لا يتسطيع العمل بدون الحصول على إذن قراءة الذاكرة الخارجية.</string>
+    <string name="storage_permissions_denied">التطبيق لا يتسطيع العمل بدون الحصول على إذن قراءة الذاكرة الخارجية.</string>
 </resources>

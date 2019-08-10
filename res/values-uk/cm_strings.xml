@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Програма не може працювати без дозволу на запис для зовнішнього накопичувача.</string>
+    <string name="storage_permissions_denied">Програма не може працювати без дозволу на запис для зовнішнього накопичувача.</string>
 </resources>

@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Приложението не може да работи без разрешение за четене на външната памет.</string>
+    <string name="storage_permissions_denied">Приложението не може да работи без разрешение за четене на външната памет.</string>
 </resources>

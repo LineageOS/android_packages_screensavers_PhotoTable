@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">ساقلىغۇچقا يېزىش ھوقۇقى بېرىلمىسە، بۇ ئەپ خىزمەت قىلالمايدۇ(يۈرگۈزۈلمەيدۇ).</string>
+    <string name="storage_permissions_denied">ساقلىغۇچقا يېزىش ھوقۇقى بېرىلمىسە، بۇ ئەپ خىزمەت قىلالمايدۇ(يۈرگۈزۈلمەيدۇ).</string>
 </resources>

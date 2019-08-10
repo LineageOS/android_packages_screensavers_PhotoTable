@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">Aplikáciu nie je možné spustiť bez povolenia na čítanie externého úložiska.</string>
+    <string name="storage_permissions_denied">Aplikáciu nie je možné spustiť bez povolenia na čítanie externého úložiska.</string>
 </resources>

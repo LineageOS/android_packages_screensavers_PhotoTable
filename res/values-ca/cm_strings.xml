@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">L\'aplicació no pot funcionar sense permís per llegir de l\'emmagatzematge extern.</string>
+    <string name="storage_permissions_denied">L\'aplicació no pot funcionar sense permís per llegir de l\'emmagatzematge extern.</string>
 </resources>

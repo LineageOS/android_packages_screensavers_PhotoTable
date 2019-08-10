@@ -16,5 +16,5 @@
      limitations under the License.
 -->
 <resources>
-  <string name="storage_permissions_denied">外部ストレージの読み取り権限がないとこのアプリは実行できません。</string>
+    <string name="storage_permissions_denied">外部ストレージの読み取り権限がないとこのアプリは実行できません。</string>
 </resources>
