@@ -18,7 +18,7 @@
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="app_name" msgid="6441943862284988546">"Προστασία οθόνης με φωτογραφία"</string>
     <string name="table_screensaver_name" msgid="1150228032617397055">"Πίνακας φωτογραφιών"</string>
-    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Πλαίσιο φωτογραφίας"</string>
+    <string name="flipper_screensaver_name" msgid="6988572107391523141">"Κάδρο φωτογραφιών"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"Φωτογραφίες από αναρτήσεις"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"Λεύκωμα χωρίς όνομα"</string>
     <string name="stock_photo_album_name" msgid="3150527596227525460">"Φωτογραφίες στοκ"</string>
