@@ -21,7 +21,7 @@
     <string name="flipper_screensaver_name" msgid="6988572107391523141">"กรอบรูป"</string>
     <string name="posts_album_name" msgid="5628151551239729515">"รูปภาพจากโพสต์"</string>
     <string name="unknown_album_name" msgid="2135521368192091267">"อัลบั้มที่ไม่มีชื่อ"</string>
-    <string name="stock_photo_album_name" msgid="3150527596227525460">"คลังภาพ"</string>
+    <string name="stock_photo_album_name" msgid="3150527596227525460">"ภาพสต็อก"</string>
     <string name="local_source_name" msgid="6487253091085518505">"รูปภาพในอุปกรณ์"</string>
     <string name="need_to_configure" msgid="1269102638159389032">"ไม่ได้เลือกรูปภาพไว้"</string>
     <string name="photodream_select_all" msgid="6364858563337927827">"เลือกทั้งหมด"</string>
